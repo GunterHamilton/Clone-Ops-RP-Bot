@@ -4,6 +4,10 @@ const { Client, Collection, GatewayIntentBits } = require('discord.js');
 const { REST } = require('@discordjs/rest');
 const { Routes } = require('discord-api-types/v9');
 const mysql = require('mysql2');
+const fetch = require('node-fetch');
+
+// Check Node.js version
+console.log(`Running on Node.js version: ${process.version}`);
 
 // Create a new client instance
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });

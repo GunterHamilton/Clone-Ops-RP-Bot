@@ -60,7 +60,7 @@ module.exports = {
         .setColor(0xFFA500) // Orange color
         .addFields(
           { name: 'Total Value', value: `${mainTotalValue}/${MAX_MAIN_TOTAL_VALUE}`, inline: false },
-          { name: 'Tiers Completed', value: mainTiersCompleted.length > 0 ? mainTiersCompleted.join(', ') : 'None', inline: false }
+          { name: 'Tiers Completed', value: mainTiersCompleted.length > 0 ? mainTiersCompleted.map(tier => `Tier ${tier}`).join('\n') : 'None', inline: false }
         )
         .setTimestamp();
 
@@ -79,7 +79,7 @@ module.exports = {
         .setColor(0xFFA500) // Orange color
         .addFields(
           { name: 'Total Value', value: `${sideTotalValue}/${MAX_SIDE_TOTAL_VALUE}`, inline: false },
-          { name: 'Tiers Completed', value: sideTiersCompleted.length > 0 ? sideTiersCompleted.join(', ') : 'None', inline: false }
+          { name: 'Tiers Completed', value: sideTiersCompleted.length > 0 ? sideTiersCompleted.map(tier => `Tier ${tier}`).join('\n') : 'None', inline: false }
         )
         .setTimestamp();
 
@@ -102,7 +102,7 @@ module.exports = {
       const message = await interaction.reply({ embeds: [mainEmbed], components: [buttons], fetchReply: true });
 
       // Create a collector to handle button interactions
-      const filter = i => i.customId === 'main' || i.customId === 'side';
+      const filter = i => (i.customId === 'main' || i.customId === 'side') && i.user.id === userId;
       const collector = message.createMessageComponentCollector({ filter, time: 60000 });
 
       collector.on('collect', async i => {

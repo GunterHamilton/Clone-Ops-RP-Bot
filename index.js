@@ -78,4 +78,10 @@ client.on('interactionCreate', async interaction => {
   }
 });
 
-client.login(process.env.DISCORD_TOKEN);
+// Additional logging to identify multiple start issues
+console.log('Starting bot...');
+client.login(process.env.DISCORD_TOKEN).then(() => {
+  console.log('Login successful.');
+}).catch(error => {
+  console.error('Login failed:', error);
+});

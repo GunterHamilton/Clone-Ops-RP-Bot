@@ -40,6 +40,14 @@ module.exports = {
         )
       `);
 
+      // Ensure columns are correct
+      await connection.execute(`
+        ALTER TABLE main_quests 
+        ADD COLUMN IF NOT EXISTS total_value INT NOT NULL DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS quests_completed JSON NOT NULL DEFAULT '[]',
+        ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      `);
+
       // Determine the value based on the quest number
       let value;
       switch (questNumber) {

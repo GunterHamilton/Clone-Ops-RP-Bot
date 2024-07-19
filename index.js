@@ -30,7 +30,11 @@ const readCommands = (dir) => {
       readCommands(filePath);
     } else if (file.endsWith('.js')) {
       const command = require(filePath);
-      client.commands.set(command.data.name, command);
+      if (!client.commands.has(command.data.name)) {
+        client.commands.set(command.data.name, command);
+      } else {
+        console.warn(`Duplicate command name detected: ${command.data.name}`);
+      }
     }
   }
 };
@@ -38,16 +42,28 @@ const readCommands = (dir) => {
 // Read commands from the commands directory
 readCommands(path.join(__dirname, 'commands'));
 
-const eventFiles = fs.readdirSync('./events').filter(file => file.endsWith('.js'));
+client.events = new Collection();
 
-for (const file of eventFiles) {
-  const event = require(`./events/${file}`);
-  if (event.once) {
-    client.once(event.name, (...args) => event.execute(...args, client));
-  } else {
-    client.on(event.name, (...args) => event.execute(...args, client));
+// Function to recursively read events from directories
+const readEvents = (dir) => {
+  const files = fs.readdirSync(dir);
+  for (const file of files) {
+    const filePath = path.join(dir, file);
+    if (fs.statSync(filePath).isDirectory()) {
+      readEvents(filePath);
+    } else if (file.endsWith('.js')) {
+      const event = require(filePath);
+      if (event.once) {
+        client.once(event.name, (...args) => event.execute(...args, client));
+      } else {
+        client.on(event.name, (...args) => event.execute(...args, client));
+      }
+    }
   }
-}
+};
+
+// Read events from the events directory
+readEvents(path.join(__dirname, 'events'));
 
 console.log('Starting bot...');
 client.login(process.env.DISCORD_TOKEN).then(() => {

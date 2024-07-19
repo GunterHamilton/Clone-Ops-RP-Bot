@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { Client, Collection, Intents } = require('discord.js');
+const { Client, Collection, GatewayIntentBits } = require('discord.js');
 const { REST } = require('@discordjs/rest');
 const { Routes } = require('discord-api-types/v9');
 require('dotenv').config();
@@ -19,7 +19,7 @@ db.connect(err => {
   console.log('MySQL Connected...');
 });
 
-const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
+const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 client.commands = new Collection();
 const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
@@ -33,16 +33,23 @@ for (const file of commandFiles) {
   commands.push(command.data.toJSON());
 }
 
-client.once('ready', () => {
-  const guild = client.guilds.cache.get(process.env.GUILD_ID);
-  if (!guild) {
-    console.error('Guild not found');
-    return;
-  }
+const rest = new REST({ version: '9' }).setToken(process.env.DISCORD_TOKEN);
 
-  guild.commands.set(commands)
-    .then(() => console.log('Successfully registered application commands.'))
-    .catch(console.error);
+client.once('ready', async () => {
+  console.log(`Logged in as ${client.user.tag}`);
+
+  try {
+    console.log('Started refreshing application (/) commands.');
+
+    await rest.put(
+      Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
+      { body: commands },
+    );
+
+    console.log('Successfully reloaded application (/) commands.');
+  } catch (error) {
+    console.error(error);
+  }
 });
 
 const eventFiles = fs.readdirSync('./events').filter(file => file.endsWith('.js'));

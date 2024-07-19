@@ -3,20 +3,20 @@ const mysql = require('mysql2/promise');
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('main-quest')
-    .setDescription('Select a main quest.')
+    .setName('main-tier')
+    .setDescription('Select a main tier.')
     .addIntegerOption(option =>
-      option.setName('quest')
-        .setDescription('Select a main quest number (1-4)')
+      option.setName('tier')
+        .setDescription('Select a main tier number (1-4)')
         .setRequired(true)
         .addChoices(
-          { name: 'Quest 1', value: 1 },
-          { name: 'Quest 2', value: 2 },
-          { name: 'Quest 3', value: 3 },
-          { name: 'Quest 4', value: 4 }
+          { name: 'Tier 1', value: 1 },
+          { name: 'Tier 2', value: 2 },
+          { name: 'Tier 3', value: 3 },
+          { name: 'Tier 4', value: 4 }
         )),
   async execute(interaction) {
-    const questNumber = interaction.options.getInteger('quest');
+    const tierNumber = interaction.options.getInteger('tier');
     const userId = interaction.user.id;
     const userName = interaction.user.tag;
 
@@ -30,11 +30,11 @@ module.exports = {
 
       // Check if the table exists, and create it if it doesn't
       await connection.execute(`
-        CREATE TABLE IF NOT EXISTS main_quests (
+        CREATE TABLE IF NOT EXISTS main_tiers (
           user_id VARCHAR(255) NOT NULL PRIMARY KEY,
           user_name VARCHAR(255) NOT NULL,
           total_value INT NOT NULL DEFAULT 0,
-          quests_completed JSON NOT NULL DEFAULT '[]',
+          tiers_completed JSON NOT NULL DEFAULT '[]',
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )
@@ -42,15 +42,15 @@ module.exports = {
 
       // Ensure columns are correct
       await connection.execute(`
-        ALTER TABLE main_quests 
+        ALTER TABLE main_tiers 
         ADD COLUMN IF NOT EXISTS total_value INT NOT NULL DEFAULT 0,
-        ADD COLUMN IF NOT EXISTS quests_completed JSON NOT NULL DEFAULT '[]',
+        ADD COLUMN IF NOT EXISTS tiers_completed JSON NOT NULL DEFAULT '[]',
         ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       `);
 
-      // Determine the value based on the quest number
+      // Determine the value based on the tier number
       let value;
-      switch (questNumber) {
+      switch (tierNumber) {
         case 1:
         case 2:
           value = 10;
@@ -62,45 +62,45 @@ module.exports = {
           value = 25;
           break;
         default:
-          return interaction.reply({ content: 'Invalid quest number.', ephemeral: true });
+          return interaction.reply({ content: 'Invalid tier number.', ephemeral: true });
       }
 
-      // Check if the user has already completed this quest
-      const [rows] = await connection.execute('SELECT * FROM main_quests WHERE user_id = ?', [userId]);
-      let questsCompleted = [];
+      // Check if the user has already completed this tier
+      const [rows] = await connection.execute('SELECT * FROM main_tiers WHERE user_id = ?', [userId]);
+      let tiersCompleted = [];
       let totalValue = 0;
 
       if (rows.length > 0) {
-        questsCompleted = JSON.parse(rows[0].quests_completed);
+        tiersCompleted = JSON.parse(rows[0].tiers_completed);
         totalValue = rows[0].total_value;
       }
 
-      if (questsCompleted.includes(questNumber)) {
-        await interaction.reply({ content: `You have already completed Quest ${questNumber}.`, ephemeral: true });
+      if (tiersCompleted.includes(tierNumber)) {
+        await interaction.reply({ content: `You have already completed Tier ${tierNumber}.`, ephemeral: true });
         await connection.end();
         return;
       }
 
-      // Update the user's total quest value and completed quests
+      // Update the user's total tier value and completed tiers
       totalValue += value;
-      questsCompleted.push(questNumber);
+      tiersCompleted.push(tierNumber);
 
       const query = `
-        INSERT INTO main_quests (user_id, user_name, total_value, quests_completed)
+        INSERT INTO main_tiers (user_id, user_name, total_value, tiers_completed)
         VALUES (?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
         user_name = VALUES(user_name),
         total_value = VALUES(total_value),
-        quests_completed = VALUES(quests_completed),
+        tiers_completed = VALUES(tiers_completed),
         updated_at = CURRENT_TIMESTAMP
       `;
-      await connection.execute(query, [userId, userName, totalValue, JSON.stringify(questsCompleted)]);
+      await connection.execute(query, [userId, userName, totalValue, JSON.stringify(tiersCompleted)]);
       await connection.end();
 
-      await interaction.reply({ content: `Quest ${questNumber} completed with value ${value}. Your total value is now ${totalValue}.`, ephemeral: true });
+      await interaction.reply({ content: `Tier ${tierNumber} completed with value ${value}. Your total value is now ${totalValue}.`, ephemeral: true });
     } catch (error) {
       console.error('Database error:', error);
-      await interaction.reply({ content: 'There was an error saving your quest to the database.', ephemeral: true });
+      await interaction.reply({ content: 'There was an error saving your tier to the database.', ephemeral: true });
     }
   },
 };

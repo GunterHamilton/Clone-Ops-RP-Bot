@@ -1,3 +1,4 @@
+require('web-streams-polyfill/ponyfill');
 const { Client, GatewayIntentBits, Collection } = require('discord.js');
 require('dotenv').config();
 const fs = require('fs');

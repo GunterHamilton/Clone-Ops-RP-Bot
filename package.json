@@ -15,5 +15,6 @@
     "fs": "^0.0.1-security",
     "mysql2": "^3.10.3",
     "web-streams-polyfill": "^4.0.0"
-  }
+  },
+  "nodeVersion": "21.6.2"
 }

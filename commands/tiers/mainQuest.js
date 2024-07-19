@@ -31,30 +31,19 @@ module.exports = {
       // Check if the table exists, and create it if it doesn't
       await connection.execute(`
         CREATE TABLE IF NOT EXISTS main_quests (
-          id INT AUTO_INCREMENT PRIMARY KEY,
-          user_id VARCHAR(255) NOT NULL,
+          user_id VARCHAR(255) NOT NULL PRIMARY KEY,
           user_name VARCHAR(255) NOT NULL,
-          quest_number INT NOT NULL,
-          value INT NOT NULL,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          total_value INT NOT NULL DEFAULT 0,
+          quests_completed JSON NOT NULL DEFAULT '[]',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )
       `);
-
-      // Check if the user has already completed this quest
-      const [rows] = await connection.execute('SELECT * FROM main_quests WHERE user_id = ? AND quest_number = ?', [userId, questNumber]);
-
-      if (rows.length > 0) {
-        await interaction.reply({ content: `You have already completed Quest ${questNumber}.`, ephemeral: true });
-        await connection.end();
-        return;
-      }
 
       // Determine the value based on the quest number
       let value;
       switch (questNumber) {
         case 1:
-          value = 10;
-          break;
         case 2:
           value = 10;
           break;
@@ -68,12 +57,39 @@ module.exports = {
           return interaction.reply({ content: 'Invalid quest number.', ephemeral: true });
       }
 
-      // Save the quest information to the database
-      const query = 'INSERT INTO main_quests (user_id, user_name, quest_number, value) VALUES (?, ?, ?, ?)';
-      await connection.execute(query, [userId, userName, questNumber, value]);
+      // Check if the user has already completed this quest
+      const [rows] = await connection.execute('SELECT * FROM main_quests WHERE user_id = ?', [userId]);
+      let questsCompleted = [];
+      let totalValue = 0;
+
+      if (rows.length > 0) {
+        questsCompleted = JSON.parse(rows[0].quests_completed);
+        totalValue = rows[0].total_value;
+      }
+
+      if (questsCompleted.includes(questNumber)) {
+        await interaction.reply({ content: `You have already completed Quest ${questNumber}.`, ephemeral: true });
+        await connection.end();
+        return;
+      }
+
+      // Update the user's total quest value and completed quests
+      totalValue += value;
+      questsCompleted.push(questNumber);
+
+      const query = `
+        INSERT INTO main_quests (user_id, user_name, total_value, quests_completed)
+        VALUES (?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+        user_name = VALUES(user_name),
+        total_value = VALUES(total_value),
+        quests_completed = VALUES(quests_completed),
+        updated_at = CURRENT_TIMESTAMP
+      `;
+      await connection.execute(query, [userId, userName, totalValue, JSON.stringify(questsCompleted)]);
       await connection.end();
 
-      await interaction.reply({ content: `Quest ${questNumber} completed with value ${value}.`, ephemeral: true });
+      await interaction.reply({ content: `Quest ${questNumber} completed with value ${value}. Your total value is now ${totalValue}.`, ephemeral: true });
     } catch (error) {
       console.error('Database error:', error);
       await interaction.reply({ content: 'There was an error saving your quest to the database.', ephemeral: true });

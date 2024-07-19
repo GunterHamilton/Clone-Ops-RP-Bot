@@ -1,6 +1,8 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const mysql = require('mysql2/promise');
 
+const MAX_TOTAL_VALUE = 65;
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('main-tier')
@@ -97,7 +99,7 @@ module.exports = {
       await connection.execute(query, [userId, userName, totalValue, JSON.stringify(tiersCompleted)]);
       await connection.end();
 
-      await interaction.reply({ content: `Tier ${tierNumber} completed with value ${value}. Your total value is now ${totalValue}.`, ephemeral: true });
+      await interaction.reply({ content: `Tier ${tierNumber} completed with value ${value}. Your total value is now ${totalValue}/${MAX_TOTAL_VALUE}.`, ephemeral: true });
     } catch (error) {
       console.error('Database error:', error);
       await interaction.reply({ content: 'There was an error saving your tier to the database.', ephemeral: true });

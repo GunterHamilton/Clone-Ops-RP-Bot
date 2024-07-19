@@ -1,4 +1,8 @@
-require('web-streams-polyfill/es2018'); // Correct way to require the polyfill
+const { ReadableStream, WritableStream, TransformStream } = require('web-streams-polyfill/ponyfill');
+globalThis.ReadableStream = ReadableStream;
+globalThis.WritableStream = WritableStream;
+globalThis.TransformStream = TransformStream;
+
 const { Client, GatewayIntentBits, Collection } = require('discord.js');
 require('dotenv').config();
 const fs = require('fs');

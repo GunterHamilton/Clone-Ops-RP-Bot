@@ -5,7 +5,7 @@ const MAX_TOTAL_VALUE = 65;
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('main-tier')
+    .setName('main-quest')
     .setDescription('Select a main tier.')
     .addIntegerOption(option =>
       option.setName('tier')

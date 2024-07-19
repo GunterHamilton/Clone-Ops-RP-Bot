@@ -12,8 +12,10 @@ module.exports = {
       option.setName('event')
         .setDescription('Specify the event to trigger (join or leave)')
         .setRequired(true)
-        .addChoice('Join', 'join')
-        .addChoice('Leave', 'leave')),
+        .addChoices(
+          { name: 'Join', value: 'join' },
+          { name: 'Leave', value: 'leave' }
+        )),
   async execute(interaction) {
     const user = interaction.options.getUser('user');
     const event = interaction.options.getString('event');

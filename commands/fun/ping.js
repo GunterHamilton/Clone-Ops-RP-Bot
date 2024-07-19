@@ -6,7 +6,9 @@ module.exports = {
     .setDescription('Replies with Pong!'),
   async execute(interaction) {
     try {
-      await interaction.reply('Pong!');
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply('Pong!');
+      }
     } catch (error) {
       console.error('Error executing ping command:', error);
       if (!interaction.replied && !interaction.deferred) {

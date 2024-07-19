@@ -49,25 +49,6 @@ for (const file of eventFiles) {
   }
 }
 
-client.on('interactionCreate', async interaction => {
-  if (!interaction.isCommand()) return;
-
-  const command = client.commands.get(interaction.commandName);
-
-  if (!command) return;
-
-  try {
-    await command.execute(interaction);
-  } catch (error) {
-    console.error('Error handling interaction:', error);
-    if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
-    } else {
-      await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
-    }
-  }
-});
-
 console.log('Starting bot...');
 client.login(process.env.DISCORD_TOKEN).then(() => {
   console.log('Login successful.');

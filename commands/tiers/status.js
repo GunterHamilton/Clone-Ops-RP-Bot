@@ -113,14 +113,22 @@ module.exports = {
         }
       });
 
-      collector.on('end', collected => {
-        // Disable buttons after the collector ends
-        buttons.components.forEach(button => button.setDisabled(true));
-        message.edit({ components: [buttons] });
+      collector.on('end', async collected => {
+        try {
+          // Disable buttons after the collector ends
+          buttons.components.forEach(button => button.setDisabled(true));
+          await message.edit({ components: [buttons] });
+        } catch (error) {
+          if (error.code === 10008) {
+            console.log('Message was deleted before it could be edited.');
+          } else {
+            console.error('Error editing message:', error);
+          }
+        }
       });
     } catch (error) {
       console.error('Database error:', error);
-      await interaction.reply({ content: 'There was an error retrieving your status from the database. Please contact guntiehamilton if you continue to have issues.', ephemeral: true });
+      await interaction.reply({ content: 'There was an error retrieving your status from the database.', ephemeral: true });
     }
   },
 };

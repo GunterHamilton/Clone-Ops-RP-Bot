@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { MessageEmbed, MessageActionRow, MessageButton } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const mysql = require('mysql2/promise');
 
 const MAX_MAIN_TOTAL_VALUE = 65;
@@ -55,11 +55,13 @@ module.exports = {
         mainTiersCompleted = JSON.parse(mainRows[0].tiers_completed);
       }
 
-      const mainEmbed = new MessageEmbed()
+      const mainEmbed = new EmbedBuilder()
         .setTitle(`${userName}'s Main Tier Completion Status`)
-        .setColor('#FFA500') // Orange color
-        .addField('Total Value', `${mainTotalValue}/${MAX_MAIN_TOTAL_VALUE}`, false)
-        .addField('Tiers Completed', mainTiersCompleted.length > 0 ? mainTiersCompleted.join(', ') : 'None', false)
+        .setColor(0xFFA500) // Orange color
+        .addFields(
+          { name: 'Total Value', value: `${mainTotalValue}/${MAX_MAIN_TOTAL_VALUE}`, inline: false },
+          { name: 'Tiers Completed', value: mainTiersCompleted.length > 0 ? mainTiersCompleted.join(', ') : 'None', inline: false }
+        )
         .setTimestamp();
 
       // Fetch side quest status
@@ -72,26 +74,28 @@ module.exports = {
         sideTiersCompleted = JSON.parse(sideRows[0].tiers_completed);
       }
 
-      const sideEmbed = new MessageEmbed()
+      const sideEmbed = new EmbedBuilder()
         .setTitle(`${userName}'s Side Tier Completion Status`)
-        .setColor('#FFA500') // Orange color
-        .addField('Total Value', `${sideTotalValue}/${MAX_SIDE_TOTAL_VALUE}`, false)
-        .addField('Tiers Completed', sideTiersCompleted.length > 0 ? sideTiersCompleted.join(', ') : 'None', false)
+        .setColor(0xFFA500) // Orange color
+        .addFields(
+          { name: 'Total Value', value: `${sideTotalValue}/${MAX_SIDE_TOTAL_VALUE}`, inline: false },
+          { name: 'Tiers Completed', value: sideTiersCompleted.length > 0 ? sideTiersCompleted.join(', ') : 'None', inline: false }
+        )
         .setTimestamp();
 
       await connection.end();
 
       // Create buttons for navigation
-      const buttons = new MessageActionRow()
+      const buttons = new ActionRowBuilder()
         .addComponents(
-          new MessageButton()
+          new ButtonBuilder()
             .setCustomId('main')
             .setLabel('Main Quest')
-            .setStyle('PRIMARY'),
-          new MessageButton()
+            .setStyle(ButtonStyle.Primary),
+          new ButtonBuilder()
             .setCustomId('side')
             .setLabel('Side Quest')
-            .setStyle('PRIMARY')
+            .setStyle(ButtonStyle.Primary)
         );
 
       // Send the initial embed
@@ -116,7 +120,7 @@ module.exports = {
       });
     } catch (error) {
       console.error('Database error:', error);
-      await interaction.reply({ content: 'There was an error retrieving your status from the database.', ephemeral: true });
+      await interaction.reply({ content: 'There was an error retrieving your status from the database. Please contact guntiehamilton if you continue to have issues.', ephemeral: true });
     }
   },
 };

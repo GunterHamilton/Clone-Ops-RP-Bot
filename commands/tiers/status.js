@@ -12,6 +12,7 @@ module.exports = {
   async execute(interaction) {
     const userId = interaction.user.id;
     const userName = interaction.user.tag;
+    const uniqueId = Date.now().toString(); // Unique identifier for this interaction
 
     try {
       const connection = await mysql.createConnection({
@@ -85,15 +86,15 @@ module.exports = {
 
       await connection.end();
 
-      // Create buttons for navigation
+      // Create buttons for navigation with unique IDs
       const buttons = new ActionRowBuilder()
         .addComponents(
           new ButtonBuilder()
-            .setCustomId('main')
+            .setCustomId(`main-${uniqueId}`)
             .setLabel('Main Quest')
             .setStyle(ButtonStyle.Primary),
           new ButtonBuilder()
-            .setCustomId('side')
+            .setCustomId(`side-${uniqueId}`)
             .setLabel('Side Quest')
             .setStyle(ButtonStyle.Primary)
         );
@@ -102,25 +103,25 @@ module.exports = {
       const message = await interaction.reply({ embeds: [mainEmbed], components: [buttons], fetchReply: true });
 
       // Create a collector to handle button interactions
-      const filter = i => (i.customId === 'main' || i.customId === 'side') && i.user.id === userId;
+      const filter = i => i.customId.endsWith(uniqueId) && (i.customId.startsWith('main-') || i.customId.startsWith('side-'));
       const collector = message.createMessageComponentCollector({ filter, time: 60000 });
 
       collector.on('collect', async i => {
-        if (i.customId === 'main') {
+        if (i.user.id !== userId) {
+          return i.reply({ content: 'You are not allowed to use these buttons.', ephemeral: true });
+        }
+        if (i.customId === `main-${uniqueId}`) {
           await i.update({ embeds: [mainEmbed], components: [buttons] });
-        } else if (i.customId === 'side') {
+        } else if (i.customId === `side-${uniqueId}`) {
           await i.update({ embeds: [sideEmbed], components: [buttons] });
         }
       });
 
       collector.on('end', async collected => {
         try {
-          // Ensure only the original message is edited
-          if (message.id === interaction.message.id) {
-            // Disable buttons after the collector ends
-            buttons.components.forEach(button => button.setDisabled(true));
-            await message.edit({ components: [buttons] });
-          }
+          // Disable buttons after the collector ends
+          buttons.components.forEach(button => button.setDisabled(true));
+          await message.edit({ components: [buttons] });
         } catch (error) {
           if (error.code === 10008) {
             console.log('Message was deleted before it could be edited.');

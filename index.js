@@ -1,8 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 const { Client, Collection, GatewayIntentBits } = require('discord.js');
-const { REST } = require('@discordjs/rest');
-const { Routes } = require('discord-api-types/v9');
 require('dotenv').config();
 const mysql = require('mysql2');
 
@@ -24,33 +22,11 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 client.commands = new Collection();
 const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
 
-const commands = [];
-
 for (const file of commandFiles) {
   const filePath = path.join(__dirname, 'commands', file);
   const command = require(filePath);
   client.commands.set(command.data.name, command);
-  commands.push(command.data.toJSON());
 }
-
-const rest = new REST({ version: '9' }).setToken(process.env.DISCORD_TOKEN);
-
-client.once('ready', async () => {
-  console.log(`Logged in as ${client.user.tag}`);
-
-  try {
-    console.log('Started refreshing application (/) commands.');
-
-    await rest.put(
-      Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
-      { body: commands },
-    );
-
-    console.log('Successfully reloaded application (/) commands.');
-  } catch (error) {
-    console.error(error);
-  }
-});
 
 const eventFiles = fs.readdirSync('./events').filter(file => file.endsWith('.js'));
 
@@ -78,7 +54,6 @@ client.on('interactionCreate', async interaction => {
   }
 });
 
-// Additional logging to identify multiple start issues
 console.log('Starting bot...');
 client.login(process.env.DISCORD_TOKEN).then(() => {
   console.log('Login successful.');

@@ -1,4 +1,4 @@
-require('web-streams-polyfill/ponyfill');
+require('web-streams-polyfill/es2018'); // Correct way to require the polyfill
 const { Client, GatewayIntentBits, Collection } = require('discord.js');
 require('dotenv').config();
 const fs = require('fs');
@@ -25,8 +25,4 @@ for (const file of eventFiles) {
 }
 
 client.once('ready', async () => {
-    const data = client.commands.map(cmd => ({ name: cmd.name, description: cmd.description }));
-    await client.application.commands.set(data);
-});
-
-client.login(process.env.TOKEN);
+    const data = client.commands.map(cmd =>

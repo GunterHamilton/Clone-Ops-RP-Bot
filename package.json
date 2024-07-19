@@ -13,6 +13,7 @@
     "discord.js": "^14.15.3",
     "dotenv": "^16.4.5",
     "fs": "^0.0.1-security",
-    "mysql2": "^3.10.3"
+    "mysql2": "^3.10.3",
+    "web-streams-polyfill": "^4.0.0"
   }
 }

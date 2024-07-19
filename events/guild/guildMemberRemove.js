@@ -1,5 +1,5 @@
-const { sendLog } = require('../../utils/webhook');
 const { MessageEmbed } = require('discord.js');
+const { sendLog } = require('../../utils/webhook');
 
 module.exports = {
   name: 'guildMemberRemove',

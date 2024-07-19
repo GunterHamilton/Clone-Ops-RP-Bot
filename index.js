@@ -20,13 +20,23 @@ db.connect(err => {
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 client.commands = new Collection();
-const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
 
-for (const file of commandFiles) {
-  const filePath = path.join(__dirname, 'commands', file);
-  const command = require(filePath);
-  client.commands.set(command.data.name, command);
-}
+// Function to recursively read commands from directories
+const readCommands = (dir) => {
+  const files = fs.readdirSync(dir);
+  for (const file of files) {
+    const filePath = path.join(dir, file);
+    if (fs.statSync(filePath).isDirectory()) {
+      readCommands(filePath);
+    } else if (file.endsWith('.js')) {
+      const command = require(filePath);
+      client.commands.set(command.data.name, command);
+    }
+  }
+};
+
+// Read commands from the commands directory
+readCommands(path.join(__dirname, 'commands'));
 
 const eventFiles = fs.readdirSync('./events').filter(file => file.endsWith('.js'));
 

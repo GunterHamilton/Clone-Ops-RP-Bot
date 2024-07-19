@@ -115,9 +115,12 @@ module.exports = {
 
       collector.on('end', async collected => {
         try {
-          // Disable buttons after the collector ends
-          buttons.components.forEach(button => button.setDisabled(true));
-          await message.edit({ components: [buttons] });
+          // Ensure only the original message is edited
+          if (message.id === interaction.message.id) {
+            // Disable buttons after the collector ends
+            buttons.components.forEach(button => button.setDisabled(true));
+            await message.edit({ components: [buttons] });
+          }
         } catch (error) {
           if (error.code === 10008) {
             console.log('Message was deleted before it could be edited.');

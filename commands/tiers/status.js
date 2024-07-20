@@ -5,10 +5,24 @@ const mysql = require('mysql2/promise');
 const MAX_MAIN_TOTAL_VALUE = 65;
 const MAX_SIDE_TOTAL_VALUE = 39;
 
+const MAX_MEDALS_TOTAL_VALUE = {
+  TT: 104,
+  AFT: 153,
+  ACT: 177,
+  RCT: 210
+};
+
+const MAX_EVENT_TOTAL_VALUE = {
+  TT: 70,
+  AFT: 105,
+  ACT: 115,
+  RCT: 148
+};
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('status')
-    .setDescription('Displays your tier completion status.'),
+    .setDescription('Displays your tier completion status across all categories.'),
   async execute(interaction) {
     const userId = interaction.user.id;
     const userName = interaction.user.tag;
@@ -22,7 +36,7 @@ module.exports = {
         database: process.env.DB_NAME
       });
 
-      // Ensure the main_tiers table exists
+      // Ensure the necessary tables exist
       await connection.execute(`
         CREATE TABLE IF NOT EXISTS main_tiers (
           user_id VARCHAR(255) NOT NULL PRIMARY KEY,
@@ -34,13 +48,34 @@ module.exports = {
         )
       `);
 
-      // Ensure the side_tiers table exists
       await connection.execute(`
         CREATE TABLE IF NOT EXISTS side_tiers (
           user_id VARCHAR(255) NOT NULL PRIMARY KEY,
           user_name VARCHAR(255) NOT NULL,
           total_value INT NOT NULL DEFAULT 0,
           tiers_completed JSON NOT NULL DEFAULT '[]',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+      `);
+
+      await connection.execute(`
+        CREATE TABLE IF NOT EXISTS medals (
+          user_id VARCHAR(255) NOT NULL PRIMARY KEY,
+          user_name VARCHAR(255) NOT NULL,
+          total_value INT NOT NULL DEFAULT 0,
+          medals_completed JSON NOT NULL DEFAULT '{}',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+      `);
+
+      await connection.execute(`
+        CREATE TABLE IF NOT EXISTS event_victories (
+          user_id VARCHAR(255) NOT NULL PRIMARY KEY,
+          user_name VARCHAR(255) NOT NULL,
+          total_value INT NOT NULL DEFAULT 0,
+          victories_completed JSON NOT NULL DEFAULT '{}',
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )
@@ -84,9 +119,47 @@ module.exports = {
         )
         .setTimestamp();
 
+      // Fetch medals status
+      const [medalsRows] = await connection.execute('SELECT * FROM medals WHERE user_id = ?', [userId]);
+      let medalsTotalValue = 0;
+      let medalsCompleted = {};
+
+      if (medalsRows.length > 0) {
+        medalsTotalValue = medalsRows[0].total_value;
+        medalsCompleted = JSON.parse(medalsRows[0].medals_completed);
+      }
+
+      const medalsEmbed = new EmbedBuilder()
+        .setTitle(`${userName}'s Medals Completion Status`)
+        .setColor(0xFFA500) // Orange color
+        .addFields(
+          { name: 'Total Value', value: `${medalsTotalValue}`, inline: false },
+          { name: 'Tiers Completed', value: Object.entries(medalsCompleted).map(([category, tiers]) => `${category}: ${tiers.map(tier => `Tier ${tier}`).join(', ')}`).join('\n') || 'None', inline: false }
+        )
+        .setTimestamp();
+
+      // Fetch event victories status
+      const [eventRows] = await connection.execute('SELECT * FROM event_victories WHERE user_id = ?', [userId]);
+      let eventTotalValue = 0;
+      let victoriesCompleted = {};
+
+      if (eventRows.length > 0) {
+        eventTotalValue = eventRows[0].total_value;
+        victoriesCompleted = JSON.parse(eventRows[0].victories_completed);
+      }
+
+      const eventsEmbed = new EmbedBuilder()
+        .setTitle(`${userName}'s Event Victories Completion Status`)
+        .setColor(0xFFA500) // Orange color
+        .addFields(
+          { name: 'Total Value', value: `${eventTotalValue}`, inline: false },
+          { name: 'Tiers Completed', value: Object.entries(victoriesCompleted).map(([category, tiers]) => `${category}: ${tiers.map(tier => `Tier ${tier}`).join(', ')}`).join('\n') || 'None', inline: false }
+        )
+        .setTimestamp();
+
       await connection.end();
 
-      // Create buttons for navigation with unique IDs
+      // Create buttons for navigation
       const buttons = new ActionRowBuilder()
         .addComponents(
           new ButtonBuilder()
@@ -96,6 +169,14 @@ module.exports = {
           new ButtonBuilder()
             .setCustomId(`side-${uniqueId}`)
             .setLabel('Side Quest')
+            .setStyle(ButtonStyle.Primary),
+          new ButtonBuilder()
+            .setCustomId(`medals-${uniqueId}`)
+            .setLabel('Medals')
+            .setStyle(ButtonStyle.Primary),
+          new ButtonBuilder()
+            .setCustomId(`events-${uniqueId}`)
+            .setLabel('Events')
             .setStyle(ButtonStyle.Primary)
         );
 
@@ -103,7 +184,7 @@ module.exports = {
       const message = await interaction.reply({ embeds: [mainEmbed], components: [buttons], fetchReply: true });
 
       // Create a collector to handle button interactions
-      const filter = i => i.customId.endsWith(uniqueId) && (i.customId.startsWith('main-') || i.customId.startsWith('side-'));
+      const filter = i => i.customId.endsWith(uniqueId) && (i.customId.startsWith('main-') || i.customId.startsWith('side-') || i.customId.startsWith('medals-') || i.customId.startsWith('events-'));
       const collector = message.createMessageComponentCollector({ filter, time: 60000 });
 
       collector.on('collect', async i => {
@@ -114,6 +195,10 @@ module.exports = {
           await i.update({ embeds: [mainEmbed], components: [buttons] });
         } else if (i.customId === `side-${uniqueId}`) {
           await i.update({ embeds: [sideEmbed], components: [buttons] });
+        } else if (i.customId === `medals-${uniqueId}`) {
+          await i.update({ embeds: [medalsEmbed], components: [buttons] });
+        } else if (i.customId === `events-${uniqueId}`) {
+          await i.update({ embeds: [eventsEmbed], components: [buttons] });
         }
       });
 

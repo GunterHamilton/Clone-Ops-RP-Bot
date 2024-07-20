@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
 const mysql = require('mysql2/promise');
 
 const VALUES = {
@@ -139,6 +139,8 @@ module.exports = {
             await connection.end();
 
             await j.reply({ content: `${category} Tier ${tier} completed with value ${value}. Your total value is now ${totalValue}.`, ephemeral: true });
+            // Delete the initial interaction message
+            await message.delete();
           } catch (error) {
             console.error('Database error:', error);
             await j.reply({ content: 'There was an error saving your event victory to the database.', ephemeral: true });
@@ -151,6 +153,10 @@ module.exports = {
           // Disable category menu after the collector ends
           categoryMenu.components.forEach(menu => menu.setDisabled(true));
           await message.edit({ components: [categoryMenu] });
+          // Delete the initial interaction message if it's still there
+          if (message.deletable) {
+            await message.delete();
+          }
         } catch (error) {
           if (error.code === 10008) {
             console.log('Message was deleted before it could be edited.');

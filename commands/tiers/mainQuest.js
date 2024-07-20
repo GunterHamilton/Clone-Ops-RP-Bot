@@ -93,7 +93,7 @@ module.exports = {
       await connection.execute(query, [userId, userName, totalValue, JSON.stringify(tiersCompleted)]);
       await connection.end();
 
-      await interaction.reply({ content: `Tier ${tierNumber} completed with value ${value}. Your total value is now ${totalValue}/${MAX_TOTAL_VALUE}.`, ephemeral: true });
+      await interaction.reply({ content: `Tier ${tierNumber} completed with value ${value}. Your total value is now ${totalValue}.`, ephemeral: true });
     } catch (error) {
       console.error('Database error:', error);
       await interaction.reply({ content: 'There was an error saving your tier to the database.', ephemeral: true });

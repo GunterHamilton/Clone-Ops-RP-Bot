@@ -140,6 +140,19 @@ module.exports = {
         )
         .setTimestamp();
 
+      // Calculate total values and completed tiers
+      const totalValue = mainTotalValue + sideTotalValue + medalsTotalValue + eventTotalValue;
+      const totalTiersCompleted = [...mainTiersCompleted, ...sideTiersCompleted, ...Object.values(medalsCompleted).flat(), ...Object.values(victoriesCompleted).flat()];
+
+      const totalEmbed = new EmbedBuilder()
+        .setTitle(`${userName}'s Total Completion Status`)
+        .setColor(0xFFA500) // Orange color
+        .addFields(
+          { name: 'Total Value', value: `${totalValue}`, inline: false },
+          { name: 'Tiers Completed', value: totalTiersCompleted.length > 0 ? totalTiersCompleted.map(tier => `Tier ${tier}`).join('\n') : 'None', inline: false }
+        )
+        .setTimestamp();
+
       await connection.end();
 
       // Create buttons for navigation
@@ -160,14 +173,18 @@ module.exports = {
           new ButtonBuilder()
             .setCustomId(`events-${uniqueId}`)
             .setLabel('Events')
-            .setStyle(ButtonStyle.Primary)
+            .setStyle(ButtonStyle.Primary),
+          new ButtonBuilder()
+            .setCustomId(`total-${uniqueId}`)
+            .setLabel('Total Status')
+            .setStyle(ButtonStyle.Success)
         );
 
       // Send the initial embed
       const message = await interaction.reply({ embeds: [mainEmbed], components: [buttons], fetchReply: true });
 
       // Create a collector to handle button interactions
-      const filter = i => i.customId.endsWith(uniqueId) && (i.customId.startsWith('main-') || i.customId.startsWith('side-') || i.customId.startsWith('medals-') || i.customId.startsWith('events-'));
+      const filter = i => i.customId.endsWith(uniqueId) && (i.customId.startsWith('main-') || i.customId.startsWith('side-') || i.customId.startsWith('medals-') || i.customId.startsWith('events-') || i.customId.startsWith('total-'));
       const collector = message.createMessageComponentCollector({ filter, time: 60000 });
 
       collector.on('collect', async i => {
@@ -182,6 +199,8 @@ module.exports = {
           await i.update({ embeds: [medalsEmbed], components: [buttons] });
         } else if (i.customId === `events-${uniqueId}`) {
           await i.update({ embeds: [eventsEmbed], components: [buttons] });
+        } else if (i.customId === `total-${uniqueId}`) {
+          await i.update({ embeds: [totalEmbed], components: [buttons] });
         }
       });
 

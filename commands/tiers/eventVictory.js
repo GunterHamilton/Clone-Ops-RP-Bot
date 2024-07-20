@@ -115,6 +115,8 @@ module.exports = {
             if (victoriesCompleted[category] && victoriesCompleted[category].includes(tier)) {
               await j.reply({ content: `You have already completed ${category} Tier ${tier}.`, ephemeral: true });
               await connection.end();
+              // Delete the initial interaction message
+              await message.delete();
               return;
             }
 

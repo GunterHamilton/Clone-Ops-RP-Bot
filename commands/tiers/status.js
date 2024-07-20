@@ -2,23 +2,6 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const mysql = require('mysql2/promise');
 
-const MAX_MAIN_TOTAL_VALUE = 65;
-const MAX_SIDE_TOTAL_VALUE = 39;
-
-const MAX_MEDALS_TOTAL_VALUE = {
-  TT: 104,
-  AFT: 153,
-  ACT: 177,
-  RCT: 210
-};
-
-const MAX_EVENT_TOTAL_VALUE = {
-  TT: 70,
-  AFT: 105,
-  ACT: 115,
-  RCT: 148
-};
-
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('status')
@@ -95,7 +78,7 @@ module.exports = {
         .setTitle(`${userName}'s Main Tier Completion Status`)
         .setColor(0xFFA500) // Orange color
         .addFields(
-          { name: 'Total Value', value: `${mainTotalValue}/${MAX_MAIN_TOTAL_VALUE}`, inline: false },
+          { name: 'Total Value', value: `${mainTotalValue}`, inline: false },
           { name: 'Tiers Completed', value: mainTiersCompleted.length > 0 ? mainTiersCompleted.map(tier => `Tier ${tier}`).join('\n') : 'None', inline: false }
         )
         .setTimestamp();
@@ -114,7 +97,7 @@ module.exports = {
         .setTitle(`${userName}'s Side Tier Completion Status`)
         .setColor(0xFFA500) // Orange color
         .addFields(
-          { name: 'Total Value', value: `${sideTotalValue}/${MAX_SIDE_TOTAL_VALUE}`, inline: false },
+          { name: 'Total Value', value: `${sideTotalValue}`, inline: false },
           { name: 'Tiers Completed', value: sideTiersCompleted.length > 0 ? sideTiersCompleted.map(tier => `Tier ${tier}`).join('\n') : 'None', inline: false }
         )
         .setTimestamp();
@@ -207,6 +190,10 @@ module.exports = {
           // Disable buttons after the collector ends
           buttons.components.forEach(button => button.setDisabled(true));
           await message.edit({ components: [buttons] });
+          // Delete the initial interaction message if it's still there
+          if (message.deletable) {
+            await message.delete();
+          }
         } catch (error) {
           if (error.code === 10008) {
             console.log('Message was deleted before it could be edited.');

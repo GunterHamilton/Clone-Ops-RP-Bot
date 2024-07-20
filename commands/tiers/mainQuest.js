@@ -77,12 +77,6 @@ module.exports = {
         totalValue = rows[0].total_value;
       }
 
-      if (tiersCompleted.includes(tierNumber)) {
-        await interaction.reply({ content: `You have already completed Tier ${tierNumber}.`, ephemeral: true });
-        await connection.end();
-        return;
-      }
-
       // Update the user's total tier value and completed tiers
       totalValue += value;
       tiersCompleted.push(tierNumber);

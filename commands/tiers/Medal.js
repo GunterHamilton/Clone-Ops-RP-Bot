@@ -111,15 +111,6 @@ module.exports = {
               medalsCompleted = JSON.parse(rows[0].medals_completed);
             }
 
-            // Check if the medal has already been completed
-            if (medalsCompleted[category] && medalsCompleted[category].includes(tier)) {
-              await j.reply({ content: `You have already completed ${category} Tier ${tier}.`, ephemeral: true });
-              await connection.end();
-              // Delete the initial interaction message
-              await message.delete();
-              return;
-            }
-
             // Update medals completed and total value
             if (!medalsCompleted[category]) {
               medalsCompleted[category] = [];

@@ -111,15 +111,6 @@ module.exports = {
               victoriesCompleted = JSON.parse(rows[0].victories_completed);
             }
 
-            // Check if the victory has already been completed
-            if (victoriesCompleted[category] && victoriesCompleted[category].includes(tier)) {
-              await j.reply({ content: `You have already completed ${category} Tier ${tier}.`, ephemeral: true });
-              await connection.end();
-              // Delete the initial interaction message
-              await message.delete();
-              return;
-            }
-
             // Update victories completed and total value
             if (!victoriesCompleted[category]) {
               victoriesCompleted[category] = [];

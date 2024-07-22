@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
 const mysql = require('mysql2/promise');
 
 module.exports = {
@@ -20,138 +20,59 @@ module.exports = {
       });
 
       // Ensure the necessary tables exist
-      await connection.execute(`
-        CREATE TABLE IF NOT EXISTS main_tiers (
-          user_id VARCHAR(255) NOT NULL PRIMARY KEY,
-          user_name VARCHAR(255) NOT NULL,
-          total_value INT NOT NULL DEFAULT 0,
-          tiers_completed JSON NOT NULL DEFAULT '[]',
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        )
-      `);
-
-      await connection.execute(`
-        CREATE TABLE IF NOT EXISTS side_tiers (
-          user_id VARCHAR(255) NOT NULL PRIMARY KEY,
-          user_name VARCHAR(255) NOT NULL,
-          total_value INT NOT NULL DEFAULT 0,
-          tiers_completed JSON NOT NULL DEFAULT '[]',
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        )
-      `);
-
-      await connection.execute(`
-        CREATE TABLE IF NOT EXISTS medals (
-          user_id VARCHAR(255) NOT NULL PRIMARY KEY,
-          user_name VARCHAR(255) NOT NULL,
-          total_value INT NOT NULL DEFAULT 0,
-          medals_completed JSON NOT NULL DEFAULT '{}',
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        )
-      `);
-
-      await connection.execute(`
-        CREATE TABLE IF NOT EXISTS event_victories (
-          user_id VARCHAR(255) NOT NULL PRIMARY KEY,
-          user_name VARCHAR(255) NOT NULL,
-          total_value INT NOT NULL DEFAULT 0,
-          victories_completed JSON NOT NULL DEFAULT '{}',
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        )
-      `);
-
-      // Fetch main quest status
-      const [mainRows] = await connection.execute('SELECT * FROM main_tiers WHERE user_id = ?', [userId]);
-      let mainTotalValue = 0;
-      let mainTiersCompleted = [];
-
-      if (mainRows.length > 0) {
-        mainTotalValue = mainRows[0].total_value;
-        mainTiersCompleted = JSON.parse(mainRows[0].tiers_completed);
+      const tables = ['main_tiers', 'side_tiers', 'medals', 'event_victories'];
+      for (const table of tables) {
+        await connection.execute(`
+          CREATE TABLE IF NOT EXISTS ${table} (
+            user_id VARCHAR(255) NOT NULL PRIMARY KEY,
+            user_name VARCHAR(255) NOT NULL,
+            total_value INT NOT NULL DEFAULT 0,
+            ${table === 'main_tiers' || table === 'side_tiers' ? 'tiers_completed' : table === 'medals' ? 'medals_completed' : 'victories_completed'} JSON NOT NULL DEFAULT '${table === 'main_tiers' || table === 'side_tiers' ? '[]' : '{}'}',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+          )
+        `);
       }
 
-      const mainEmbed = new EmbedBuilder()
-        .setTitle(`${userName}'s Main Tier Completion Status`)
-        .setColor(0xFFA500) // Orange color
-        .addFields(
-          { name: 'Total Value', value: `${mainTotalValue}`, inline: false },
-          { name: 'Tiers Completed', value: mainTiersCompleted.length > 0 ? mainTiersCompleted.map(tier => `Tier ${tier}`).join('\n') : 'None', inline: false }
-        )
-        .setTimestamp();
+      const fetchCategoryStatus = async (tableName) => {
+        const [rows] = await connection.execute(`SELECT * FROM ${tableName} WHERE user_id = ?`, [userId]);
+        let totalValue = 0;
+        let completed = tableName === 'main_tiers' || tableName === 'side_tiers' ? [] : {};
 
-      // Fetch side quest status
-      const [sideRows] = await connection.execute('SELECT * FROM side_tiers WHERE user_id = ?', [userId]);
-      let sideTotalValue = 0;
-      let sideTiersCompleted = [];
+        if (rows.length > 0) {
+          totalValue = rows[0].total_value;
+          completed = JSON.parse(rows[0][tableName === 'main_tiers' || tableName === 'side_tiers' ? 'tiers_completed' : tableName === 'medals' ? 'medals_completed' : 'victories_completed']);
+        }
 
-      if (sideRows.length > 0) {
-        sideTotalValue = sideRows[0].total_value;
-        sideTiersCompleted = JSON.parse(sideRows[0].tiers_completed);
-      }
+        return { totalValue, completed };
+      };
 
-      const sideEmbed = new EmbedBuilder()
-        .setTitle(`${userName}'s Side Tier Completion Status`)
-        .setColor(0xFFA500) // Orange color
-        .addFields(
-          { name: 'Total Value', value: `${sideTotalValue}`, inline: false },
-          { name: 'Tiers Completed', value: sideTiersCompleted.length > 0 ? sideTiersCompleted.map(tier => `Tier ${tier}`).join('\n') : 'None', inline: false }
-        )
-        .setTimestamp();
+      const mainStatus = await fetchCategoryStatus('main_tiers');
+      const sideStatus = await fetchCategoryStatus('side_tiers');
+      const medalsStatus = await fetchCategoryStatus('medals');
+      const eventStatus = await fetchCategoryStatus('event_victories');
 
-      // Fetch medals status
-      const [medalsRows] = await connection.execute('SELECT * FROM medals WHERE user_id = ?', [userId]);
-      let medalsTotalValue = 0;
-      let medalsCompleted = {};
+      const createEmbed = (title, main, side, medals, events) => {
+        return new EmbedBuilder()
+          .setTitle(`${userName}'s ${title}`)
+          .setColor(0xFFA500) // Orange color
+          .addFields(
+            { name: 'Main Tier Total Value', value: `${main.totalValue}`, inline: true },
+            { name: 'Main Tiers Completed', value: main.completed.length > 0 ? main.completed.map(tier => `Tier ${tier}`).join('\n') : 'None', inline: true },
+            { name: 'Side Tier Total Value', value: `${side.totalValue}`, inline: true },
+            { name: 'Side Tiers Completed', value: side.completed.length > 0 ? side.completed.map(tier => `Tier ${tier}`).join('\n') : 'None', inline: true },
+            { name: 'Medals Total Value', value: `${medals.totalValue}`, inline: true },
+            { name: 'Medals Completed', value: Object.entries(medals.completed).length > 0 ? Object.entries(medals.completed).map(([category, tiers]) => `${category}: ${tiers.map(tier => `Tier ${tier}`).join(', ')}`).join('\n') : 'None', inline: true },
+            { name: 'Event Victories Total Value', value: `${events.totalValue}`, inline: true },
+            { name: 'Victories Completed', value: Object.entries(events.completed).length > 0 ? Object.entries(events.completed).map(([category, tiers]) => `${category}: ${tiers.map(tier => `Tier ${tier}`).join(', ')}`).join('\n') : 'None', inline: true }
+          )
+          .setTimestamp();
+      };
 
-      if (medalsRows.length > 0) {
-        medalsTotalValue = medalsRows[0].total_value;
-        medalsCompleted = JSON.parse(medalsRows[0].medals_completed);
-      }
-
-      const medalsEmbed = new EmbedBuilder()
-        .setTitle(`${userName}'s Medals Completion Status`)
-        .setColor(0xFFA500) // Orange color
-        .addFields(
-          { name: 'Total Value', value: `${medalsTotalValue}`, inline: false },
-          { name: 'Tiers Completed', value: Object.entries(medalsCompleted).map(([category, tiers]) => `${category}: ${tiers.map(tier => `Tier ${tier}`).join(', ')}`).join('\n') || 'None', inline: false }
-        )
-        .setTimestamp();
-
-      // Fetch event victories status
-      const [eventRows] = await connection.execute('SELECT * FROM event_victories WHERE user_id = ?', [userId]);
-      let eventTotalValue = 0;
-      let victoriesCompleted = {};
-
-      if (eventRows.length > 0) {
-        eventTotalValue = eventRows[0].total_value;
-        victoriesCompleted = JSON.parse(eventRows[0].victories_completed);
-      }
-
-      const eventsEmbed = new EmbedBuilder()
-        .setTitle(`${userName}'s Event Victories Completion Status`)
-        .setColor(0xFFA500) // Orange color
-        .addFields(
-          { name: 'Total Value', value: `${eventTotalValue}`, inline: false },
-          { name: 'Tiers Completed', value: Object.entries(victoriesCompleted).map(([category, tiers]) => `${category}: ${tiers.map(tier => `Tier ${tier}`).join(', ')}`).join('\n') || 'None', inline: false }
-        )
-        .setTimestamp();
-
-      // Calculate total values and completed tiers
-      const totalValue = mainTotalValue + sideTotalValue + medalsTotalValue + eventTotalValue;
-      const totalTiersCompleted = [...mainTiersCompleted, ...sideTiersCompleted, ...Object.values(medalsCompleted).flat(), ...Object.values(victoriesCompleted).flat()];
-
-      const totalEmbed = new EmbedBuilder()
-        .setTitle(`${userName}'s Total Completion Status`)
-        .setColor(0xFFA500) // Orange color
-        .addFields(
-          { name: 'Total Value', value: `${totalValue}`, inline: false },
-          { name: 'Tiers Completed', value: totalTiersCompleted.length > 0 ? totalTiersCompleted.map(tier => `Tier ${tier}`).join('\n') : 'None', inline: false }
-        )
-        .setTimestamp();
+      const arcEmbed = createEmbed('ARC Tier Completion Status', mainStatus, sideStatus, medalsStatus, eventStatus);
+      const arfEmbed = createEmbed('ARF Tier Completion Status', mainStatus, sideStatus, medalsStatus, eventStatus);
+      const trooperEmbed = createEmbed('Trooper Tier Completion Status', mainStatus, sideStatus, medalsStatus, eventStatus);
+      const rcEmbed = createEmbed('Republic Commando Tier Completion Status', mainStatus, sideStatus, medalsStatus, eventStatus);
 
       // Create a select menu for category selection
       const selectMenu = new StringSelectMenuBuilder()
@@ -170,7 +91,7 @@ module.exports = {
       await interaction.reply({ content: 'Please select a category to view your status:', components: [selectRow], ephemeral: true });
 
       // Create a collector to handle select menu interactions
-      const filter = i => i.customId.endsWith(uniqueId) && i.user.id === userId;
+      const filter = i => i.customId === `select-${uniqueId}` && i.user.id === userId;
       const collector = interaction.channel.createMessageComponentCollector({ filter, time: 60000 });
 
       collector.on('collect', async i => {
@@ -181,16 +102,16 @@ module.exports = {
 
         switch (category) {
           case 'arc':
-            embed = mainEmbed;
+            embed = arcEmbed;
             break;
           case 'arf':
-            embed = sideEmbed;
+            embed = arfEmbed;
             break;
           case 'trooper':
-            embed = medalsEmbed;
+            embed = trooperEmbed;
             break;
           case 'rc':
-            embed = eventsEmbed;
+            embed = rcEmbed;
             break;
           default:
             return;

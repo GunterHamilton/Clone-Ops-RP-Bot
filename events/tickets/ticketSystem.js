@@ -117,10 +117,10 @@ module.exports = {
       const ticketEmbed = new EmbedBuilder()
         .setTitle('Ticket Created')
         .setDescription('Thank you for reaching out! Our support team will be with you shortly. In the meantime, please provide any additional information that might help us assist you.')
-        .setColor(0x32CD32) // Lime Green
+        .setColor(0xFFD700) // Gold
         .setTimestamp();
 
-      const ticketMessage = await ticketChannel.send({ content: `<@&${roleId}>`, embeds: [ticketEmbed] });
+      const ticketMessage = await ticketChannel.send({ embeds: [ticketEmbed] });
       await ticketMessage.pin();
       const pinMessage = await ticketChannel.send('Pinned the ticket creation message.');
       setTimeout(() => pinMessage.delete(), 5000); // Delete the pin confirmation message after 5 seconds

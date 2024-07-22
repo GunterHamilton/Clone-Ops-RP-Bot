@@ -25,6 +25,12 @@ module.exports = {
       )
     `);
 
+    // Alter table to add ticket_number column if it does not exist
+    await connection.execute(`
+      ALTER TABLE tickets
+      ADD COLUMN IF NOT EXISTS ticket_number INT AUTO_INCREMENT PRIMARY KEY;
+    `);
+
     const channel = await client.channels.fetch(process.env.TICKET_CHANNEL_ID);
 
     const embed = new EmbedBuilder()

@@ -27,11 +27,11 @@ module.exports = {
 
     const embed = new EmbedBuilder()
       .setTitle('Ticket System')
-      .setDescription('Please select the type of ticket you want to create:')
+      .setDescription('Welcome to the ticket system! Please select the type of ticket you want to create by clicking one of the buttons below.')
       .addFields(
-        { name: 'Bug Report', value: 'Select this option to report any bugs or issues you encounter in the server.', inline: false },
-        { name: 'Player Report', value: 'Select this option to report any misconduct or rule-breaking behavior by other players.', inline: false },
-        { name: 'Other', value: 'Select this option for any other inquiries or issues not covered by the other categories.', inline: false }
+        { name: '🐞 Bug Report', value: 'Select this option to report any bugs or issues you encounter in the server. Provide as much detail as possible so we can resolve the issue quickly.', inline: false },
+        { name: '🚩 Player Report', value: 'Select this option to report any misconduct or rule-breaking behavior by other players. Make sure to include relevant evidence such as screenshots or video clips.', inline: false },
+        { name: '❓ Other', value: 'Select this option for any other inquiries or issues not covered by the other categories. Our support team will assist you with your request.', inline: false }
       )
       .setColor(0x1E90FF) // Dodger Blue
       .setTimestamp();
@@ -116,12 +116,14 @@ module.exports = {
 
       const ticketEmbed = new EmbedBuilder()
         .setTitle('Ticket Created')
-        .setDescription('Thank you for creating a ticket, someone will be with your shortly! While you are waiting, please decribe the issue you are having to give us a better idea.')
-        .setColor("FFA500") // Lime Green
+        .setDescription('Thank you for reaching out! Our support team will be with you shortly. In the meantime, please provide any additional information that might help us assist you.')
+        .setColor(0x32CD32) // Lime Green
         .setTimestamp();
 
-    // <@&${roleId}>
-      await ticketChannel.send({ embeds: [ticketEmbed] });
+      const ticketMessage = await ticketChannel.send({ content: `<@&${roleId}>`, embeds: [ticketEmbed] });
+      await ticketMessage.pin();
+      const pinMessage = await ticketChannel.send('Pinned the ticket creation message.');
+      setTimeout(() => pinMessage.delete(), 5000); // Delete the pin confirmation message after 5 seconds
 
       await interaction.reply({ content: `Your ticket has been created: ${ticketChannel}`, ephemeral: true });
     });

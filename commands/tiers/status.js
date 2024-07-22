@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
 const mysql = require('mysql2/promise');
 
 module.exports = {
@@ -153,74 +153,64 @@ module.exports = {
         )
         .setTimestamp();
 
-      await connection.end();
+      // Create a select menu for category selection
+      const selectMenu = new StringSelectMenuBuilder()
+        .setCustomId(`select-${uniqueId}`)
+        .setPlaceholder('Select a category')
+        .addOptions([
+          { label: 'ARC', value: 'arc' },
+          { label: 'ARF', value: 'arf' },
+          { label: 'Trooper', value: 'trooper' },
+          { label: 'Republic Commando', value: 'rc' },
+        ]);
 
-      // Create buttons for navigation
-      const buttons = new ActionRowBuilder()
-        .addComponents(
-          new ButtonBuilder()
-            .setCustomId(`main-${uniqueId}`)
-            .setLabel('Main Quest')
-            .setStyle(ButtonStyle.Primary),
-          new ButtonBuilder()
-            .setCustomId(`side-${uniqueId}`)
-            .setLabel('Side Quest')
-            .setStyle(ButtonStyle.Primary),
-          new ButtonBuilder()
-            .setCustomId(`medals-${uniqueId}`)
-            .setLabel('Medals')
-            .setStyle(ButtonStyle.Primary),
-          new ButtonBuilder()
-            .setCustomId(`events-${uniqueId}`)
-            .setLabel('Events')
-            .setStyle(ButtonStyle.Primary),
-          new ButtonBuilder()
-            .setCustomId(`total-${uniqueId}`)
-            .setLabel('Total Status')
-            .setStyle(ButtonStyle.Success)
-        );
+      const selectRow = new ActionRowBuilder().addComponents(selectMenu);
 
-      // Send the initial embed
-      const message = await interaction.reply({ embeds: [mainEmbed], components: [buttons], fetchReply: true });
+      // Send the initial select menu
+      await interaction.reply({ content: 'Please select a category to view your status:', components: [selectRow], ephemeral: true });
 
-      // Create a collector to handle button interactions
-      const filter = i => i.customId.endsWith(uniqueId) && (i.customId.startsWith('main-') || i.customId.startsWith('side-') || i.customId.startsWith('medals-') || i.customId.startsWith('events-') || i.customId.startsWith('total-'));
-      const collector = message.createMessageComponentCollector({ filter, time: 60000 });
+      // Create a collector to handle select menu interactions
+      const filter = i => i.customId.endsWith(uniqueId) && i.user.id === userId;
+      const collector = interaction.channel.createMessageComponentCollector({ filter, time: 60000 });
 
       collector.on('collect', async i => {
-        if (i.user.id !== userId) {
-          return i.reply({ content: 'You are not allowed to use these buttons.', ephemeral: true });
+        if (!i.isStringSelectMenu()) return;
+
+        const category = i.values[0];
+        let embed;
+
+        switch (category) {
+          case 'arc':
+            embed = mainEmbed;
+            break;
+          case 'arf':
+            embed = sideEmbed;
+            break;
+          case 'trooper':
+            embed = medalsEmbed;
+            break;
+          case 'rc':
+            embed = eventsEmbed;
+            break;
+          default:
+            return;
         }
-        if (i.customId === `main-${uniqueId}`) {
-          await i.update({ embeds: [mainEmbed], components: [buttons] });
-        } else if (i.customId === `side-${uniqueId}`) {
-          await i.update({ embeds: [sideEmbed], components: [buttons] });
-        } else if (i.customId === `medals-${uniqueId}`) {
-          await i.update({ embeds: [medalsEmbed], components: [buttons] });
-        } else if (i.customId === `events-${uniqueId}`) {
-          await i.update({ embeds: [eventsEmbed], components: [buttons] });
-        } else if (i.customId === `total-${uniqueId}`) {
-          await i.update({ embeds: [totalEmbed], components: [buttons] });
+
+        await i.update({ embeds: [embed], components: [] });
+      });
+
+      collector.on('end', async () => {
+        try {
+          // Disable select menu after the collector ends
+          selectMenu.setDisabled(true);
+          await interaction.editReply({ components: [selectRow] });
+        } catch (error) {
+          console.error('Error editing message:', error);
         }
       });
 
-      collector.on('end', async collected => {
-        try {
-          // Disable buttons after the collector ends
-          buttons.components.forEach(button => button.setDisabled(true));
-          await message.edit({ components: [buttons] });
-          // Delete the initial interaction message if it's still there
-          if (message.deletable) {
-            await message.delete();
-          }
-        } catch (error) {
-          if (error.code === 10008) {
-            console.log('Message was deleted before it could be edited.');
-          } else {
-            console.error('Error editing message:', error);
-          }
-        }
-      });
+      await connection.end();
+
     } catch (error) {
       console.error('Database error:', error);
       await interaction.reply({ content: 'There was an error retrieving your status from the database.', ephemeral: true });

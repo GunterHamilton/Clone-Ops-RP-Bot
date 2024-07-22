@@ -28,6 +28,11 @@ module.exports = {
     const embed = new EmbedBuilder()
       .setTitle('Ticket System')
       .setDescription('Please select the type of ticket you want to create:')
+      .addFields(
+        { name: 'Bug Report', value: 'Select this option to report any bugs or issues you encounter in the server.' },
+        { name: 'Player Report', value: 'Select this option to report any misconduct or rule-breaking behavior by other players.' },
+        { name: 'Other', value: 'Select this option for any other inquiries or issues not covered by the other categories.' }
+      )
       .setColor(0x00FF00)
       .setTimestamp();
 

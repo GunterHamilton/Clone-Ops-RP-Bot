@@ -59,11 +59,11 @@ module.exports = {
           .addFields(
             { name: 'Main Tier Total Value', value: `${main.totalValue}`, inline: true },
             { name: 'Main Tiers Completed', value: main.completed.length > 0 ? main.completed.map(tier => `Tier ${tier}`).join('\n') : 'None', inline: true },
-            { name: 'Side Tier Total Value', value: `${side.totalValue}`, inline: false },
+            { name: 'Side Tier Total Value', value: `${side.totalValue}`, inline: true },
             { name: 'Side Tiers Completed', value: side.completed.length > 0 ? side.completed.map(tier => `Tier ${tier}`).join('\n') : 'None', inline: true },
-            { name: 'Medals Total Value', value: `${medals.totalValue}`, inline: false },
+            { name: 'Medals Total Value', value: `${medals.totalValue}`, inline: true },
             { name: 'Medals Completed', value: Object.entries(medals.completed).length > 0 ? Object.entries(medals.completed).map(([category, tiers]) => `${category}: ${tiers.map(tier => `Tier ${tier}`).join(', ')}`).join('\n') : 'None', inline: true },
-            { name: 'Event Victories Total Value', value: `${events.totalValue}`, inline: false },
+            { name: 'Event Victories Total Value', value: `${events.totalValue}`, inline: true },
             { name: 'Victories Completed', value: Object.entries(events.completed).length > 0 ? Object.entries(events.completed).map(([category, tiers]) => `${category}: ${tiers.map(tier => `Tier ${tier}`).join(', ')}`).join('\n') : 'None', inline: true }
           )
           .setTimestamp();

@@ -29,11 +29,11 @@ module.exports = {
       .setTitle('Ticket System')
       .setDescription('Please select the type of ticket you want to create:')
       .addFields(
-        { name: 'Bug Report', value: 'Select this option to report any bugs or issues you encounter in the server.' },
-        { name: 'Player Report', value: 'Select this option to report any misconduct or rule-breaking behavior by other players.' },
-        { name: 'Other', value: 'Select this option for any other inquiries or issues not covered by the other categories.' }
+        { name: 'Bug Report', value: 'Select this option to report any bugs or issues you encounter in the server.', inline: false },
+        { name: 'Player Report', value: 'Select this option to report any misconduct or rule-breaking behavior by other players.', inline: false },
+        { name: 'Other', value: 'Select this option for any other inquiries or issues not covered by the other categories.', inline: false }
       )
-      .setColor(0x00FF00)
+      .setColor(0x1E90FF) // Dodger Blue
       .setTimestamp();
 
     const buttons = new ActionRowBuilder()
@@ -45,11 +45,11 @@ module.exports = {
         new ButtonBuilder()
           .setCustomId('create-player-report')
           .setLabel('Player Report')
-          .setStyle(ButtonStyle.Primary),
+          .setStyle(ButtonStyle.Danger),
         new ButtonBuilder()
           .setCustomId('create-other-ticket')
           .setLabel('Other')
-          .setStyle(ButtonStyle.Primary)
+          .setStyle(ButtonStyle.Secondary)
       );
 
     // Check if the message already exists in the channel
@@ -117,9 +117,10 @@ module.exports = {
       const ticketEmbed = new EmbedBuilder()
         .setTitle('Ticket Created')
         .setDescription('We will be with you shortly.')
-        .setColor(0x00FF00)
+        .setColor(0x32CD32) // Lime Green
         .setTimestamp();
 
+    // <@&${roleId}>
       await ticketChannel.send({ content: `t`, embeds: [ticketEmbed] });
 
       await interaction.reply({ content: `Your ticket has been created: ${ticketChannel}`, ephemeral: true });

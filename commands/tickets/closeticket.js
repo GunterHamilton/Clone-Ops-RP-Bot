@@ -13,7 +13,9 @@ module.exports = {
     const userId = interaction.user.id;
     const userName = interaction.user.tag;
     const channelName = interaction.channel.name;
-    const categoryName = channelName.split('-')[0];
+    
+    // Adjust the category extraction logic
+    const categoryName = channelName.split('-').slice(0, 2).join('-'); 
 
     console.log(`Attempting to close ticket for user: ${userName} in category: ${categoryName}`);
 

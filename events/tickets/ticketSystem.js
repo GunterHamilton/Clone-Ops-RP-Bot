@@ -18,8 +18,10 @@ module.exports = {
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS tickets (
         user_id VARCHAR(255) NOT NULL,
+        ticket_number INT NOT NULL AUTO_INCREMENT,
         category VARCHAR(255) NOT NULL,
-        PRIMARY KEY (user_id, category)
+        PRIMARY KEY (user_id, category),
+        UNIQUE (ticket_number)
       )
     `);
 
@@ -92,8 +94,12 @@ module.exports = {
         return interaction.reply({ content: 'You already have an open ticket in this category.', ephemeral: true });
       }
 
+      const [result] = await connection.execute('INSERT INTO tickets (user_id, category) VALUES (?, ?)', [userId, category]);
+
+      const ticketNumber = result.insertId;
+
       const ticketChannel = await interaction.guild.channels.create({
-        name: `${category}-${userName}`,
+        name: `${category}-${ticketNumber}`,
         type: 0, // 0 is for text channels in discord.js v14
         parent: categoryId,
         permissionOverwrites: [
@@ -112,11 +118,9 @@ module.exports = {
         ]
       });
 
-      await connection.execute('INSERT INTO tickets (user_id, category) VALUES (?, ?)', [userId, category]);
-
       const ticketEmbed = new EmbedBuilder()
         .setTitle('Ticket Created')
-        .setDescription('Thank you for reaching out! Our support team will be with you shortly. In the meantime, please provide any additional information that might help us assist you.')
+        .setDescription(`Thank you for reaching out! Our support team will be with you shortly. Your ticket number is **${ticketNumber}**. In the meantime, please provide any additional information that might help us assist you.`)
         .setColor(0xFFD700) // Gold
         .setTimestamp();
 

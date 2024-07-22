@@ -14,6 +14,7 @@
     "axios": "^1.7.2",
     "discord.js": "^14.15.3",
     "dotenv": "^16.4.5",
+    "form-data": "^4.0.0",
     "mysql2": "^3.10.3"
   },
   "nodeVersion": "21.6.2"

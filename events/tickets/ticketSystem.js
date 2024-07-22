@@ -94,9 +94,10 @@ module.exports = {
         return interaction.reply({ content: 'You already have an open ticket in this category.', ephemeral: true });
       }
 
-      const [result] = await connection.execute('INSERT INTO tickets (user_id, category) VALUES (?, ?)', [userId, category]);
+      await connection.execute('INSERT INTO tickets (user_id, category) VALUES (?, ?)', [userId, category]);
 
-      const ticketNumber = result.insertId;
+      const [result] = await connection.execute('SELECT ticket_number FROM tickets WHERE user_id = ? AND category = ?', [userId, category]);
+      const ticketNumber = result[0].ticket_number;
 
       const ticketChannel = await interaction.guild.channels.create({
         name: `${category}-${ticketNumber}`,

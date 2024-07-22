@@ -122,8 +122,6 @@ module.exports = {
 
       const ticketMessage = await ticketChannel.send({ embeds: [ticketEmbed] });
       await ticketMessage.pin();
-      const pinMessage = await ticketChannel.send('Pinned the ticket creation message.');
-      setTimeout(() => pinMessage.delete(), 5000); // Delete the pin confirmation message after 5 seconds
 
       await interaction.reply({ content: `Your ticket has been created: ${ticketChannel}`, ephemeral: true });
     });

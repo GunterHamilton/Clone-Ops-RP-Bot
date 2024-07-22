@@ -99,13 +99,21 @@ module.exports = {
 
       const attachment = new AttachmentBuilder(transcriptPath);
 
-      await axios.post(process.env.TICKET_LOG_WEBHOOK_URL, {
-        embeds: [logEmbed.toJSON()],
-        files: [transcriptPath]
-      });
+      try {
+        await axios.post(process.env.TICKET_LOG_WEBHOOK_URL, {
+          embeds: [logEmbed.toJSON()],
+          files: [transcriptPath]
+        });
 
-      // Delete the transcript file after sending
-      fs.unlinkSync(transcriptPath);
+        // Delete the transcript file after sending
+        fs.unlinkSync(transcriptPath);
+      } catch (error) {
+        console.error('Error logging to webhook:', error.message);
+        if (error.response && error.response.data) {
+          console.error('Webhook response data:', error.response.data);
+        }
+        // Optionally, handle the error by informing the user or taking other actions
+      }
 
     } catch (error) {
       console.error('Database error:', error);

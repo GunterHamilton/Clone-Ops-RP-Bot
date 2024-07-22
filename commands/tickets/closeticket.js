@@ -15,6 +15,8 @@ module.exports = {
     const channelName = interaction.channel.name;
     const categoryName = channelName.split('-')[0];
 
+    console.log(`Attempting to close ticket for user: ${userName} in category: ${categoryName}`);
+
     try {
       const connection = await mysql.createConnection({
         host: process.env.DB_HOST,
@@ -24,6 +26,8 @@ module.exports = {
       });
 
       const [rows] = await connection.execute('SELECT * FROM tickets WHERE user_id = ? AND category = ?', [userId, categoryName]);
+
+      console.log(`Database query result: ${JSON.stringify(rows)}`);
 
       if (rows.length === 0) {
         return interaction.reply({ content: 'You do not have an open ticket in this category.', ephemeral: true });

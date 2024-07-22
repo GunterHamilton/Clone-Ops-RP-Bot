@@ -120,7 +120,7 @@ module.exports = {
         .setColor(0x00FF00)
         .setTimestamp();
 
-      await ticketChannel.send({ content: `<@&${roleId}>`, embeds: [ticketEmbed] });
+      await ticketChannel.send({ content: `t`, embeds: [ticketEmbed] });
 
       await interaction.reply({ content: `Your ticket has been created: ${ticketChannel}`, ephemeral: true });
     });

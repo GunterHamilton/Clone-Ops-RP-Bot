@@ -121,7 +121,7 @@ module.exports = {
         .setTimestamp();
 
     // <@&${roleId}>
-      await ticketChannel.send({ content: `t`, embeds: [ticketEmbed] });
+      await ticketChannel.send({ embeds: [ticketEmbed] });
 
       await interaction.reply({ content: `Your ticket has been created: ${ticketChannel}`, ephemeral: true });
     });

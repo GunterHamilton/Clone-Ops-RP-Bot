@@ -117,7 +117,7 @@ module.exports = {
       const ticketEmbed = new EmbedBuilder()
         .setTitle('Ticket Created')
         .setDescription('Thank you for creating a ticket, someone will be with your shortly! While you are waiting, please decribe the issue you are having to give us a better idea.')
-        .setColor(FFA500) // Lime Green
+        .setColor("FFA500") // Lime Green
         .setTimestamp();
 
     // <@&${roleId}>

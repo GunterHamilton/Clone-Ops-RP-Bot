@@ -97,12 +97,15 @@ module.exports = {
         .setColor(0x1E90FF) // Dodger Blue
         .setTimestamp();
 
-      const attachment = new AttachmentBuilder(transcriptPath);
+      const form = new FormData();
+      form.append('payload_json', JSON.stringify({ embeds: [logEmbed.toJSON()] }));
+      form.append('file', fs.createReadStream(transcriptPath), {
+        filename: `transcript-${ticketNumber}.txt`
+      });
 
       try {
-        await axios.post(process.env.TICKET_LOG_WEBHOOK_URL, {
-          embeds: [logEmbed.toJSON()],
-          files: [transcriptPath]
+        await axios.post(process.env.TICKET_LOG_WEBHOOK_URL, form, {
+          headers: form.getHeaders(),
         });
 
         // Delete the transcript file after sending

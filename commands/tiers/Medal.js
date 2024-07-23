@@ -1,19 +1,19 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
+const { ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
 const mysql = require('mysql2/promise');
 
 const VALUES = {
-  TT: [6, 18, 30, 50],
-  AFT: [20, 20, 38, 75],
-  ACT: [12, 25, 40, 100],
-  RCT: [15, 25, 45, 125]
+  'Clone Trooper': [6, 18, 30, 50],
+  ARF: [20, 20, 38, 75],
+  ARC: [12, 25, 40, 100],
+  'Republic Commando': [15, 25, 45, 125]
 };
 
 const STAGE_COMPLETION_POINTS = {
-  'arc': 500,
-  'arf': 400,
-  'clone_trooper': 250,
-  'republic_commando': 550
+  'Clone Trooper': 250,
+  ARF: 400,
+  ARC: 500,
+  'Republic Commando': 550
 };
 
 module.exports = {
@@ -54,10 +54,10 @@ module.exports = {
             .setCustomId(`category-${uniqueId}`)
             .setPlaceholder('Select a category')
             .addOptions([
-              { label: 'TT', value: 'TT' },
-              { label: 'AFT', value: 'AFT' },
-              { label: 'ACT', value: 'ACT' },
-              { label: 'RCT', value: 'RCT' }
+              { label: 'Clone Trooper', value: 'Clone Trooper' },
+              { label: 'ARF', value: 'ARF' },
+              { label: 'ARC', value: 'ARC' },
+              { label: 'Republic Commando', value: 'Republic Commando' }
             ])
         );
 

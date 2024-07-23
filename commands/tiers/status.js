@@ -121,7 +121,9 @@ module.exports = {
       const currentStageIndex = mainStatus.stage - 1;
       console.log(`Current Stage: ${mainStatus.stage}, Total Value: ${totalValue}, Required: ${stagePoints[category][currentStageIndex]}`);
       if (currentStageIndex < stagePoints[category].length && totalValue >= stagePoints[category][currentStageIndex]) {
-        resetMessage = `You have completed the quota to move onto the next stage! Your progress has now been reset!`;
+        resetMessage = `Congrats ${category.toUpperCase()} quota complete!
+
+Fill out the Tier Checklist for Tier ${mainStatus.stage} ${category.toUpperCase()} by [clicking here](https://docs.google.com/document/d/1ql3McaNUNxxwiqy3-tNfO7_LLaGLV0ST8Zx0pCAWqnY/edit). Fill out promotion log once you have been whitelisted in game`;
 
         // Increment the user's stage and reset their progress
         const newStage = mainStatus.stage + 1;

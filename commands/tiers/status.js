@@ -58,29 +58,29 @@ module.exports = {
         return { totalValue, completed };
       };
 
-      const mainStatus = await fetchCategoryStatus('clone_trooper_tiers');
-      const sideStatus = await fetchCategoryStatus('arf_tiers');
-      const medalsStatus = await fetchCategoryStatus('arc_tiers');
-      const eventStatus = await fetchCategoryStatus('republic_commando_tiers');
+      const cloneTrooperStatus = await fetchCategoryStatus('clone_trooper_tiers');
+      const arfStatus = await fetchCategoryStatus('arf_tiers');
+      const arcStatus = await fetchCategoryStatus('arc_tiers');
+      const republicCommandoStatus = await fetchCategoryStatus('republic_commando_tiers');
 
       const createEmbed = (title, data) => {
         return new EmbedBuilder()
           .setTitle(`${userName}'s ${title}`)
           .setColor(0xFFA500) // Orange color
           .addFields(
-            { name: 'Main Tier Total Value', value: `${data.main.totalValue}`, inline: true },
-            { name: 'Main Tiers Completed', value: data.main.completed.length > 0 ? data.main.completed.map(tier => `Tier ${tier}`).join('\n') : 'None', inline: true },
-            { name: 'Side Tier Total Value', value: `${data.side.totalValue}`, inline: true },
-            { name: 'Side Tiers Completed', value: data.side.completed.length > 0 ? data.side.completed.map(tier => `Tier ${tier}`).join('\n') : 'None', inline: true },
-            { name: 'Medals Total Value', value: `${data.medals.totalValue}`, inline: true },
-            { name: 'Medals Completed', value: Object.entries(data.medals.completed).length > 0 ? Object.entries(data.medals.completed).map(([category, tiers]) => `${category}: ${tiers.map(tier => `Tier ${tier}`).join(', ')}`).join('\n') : 'None', inline: true },
-            { name: 'Event Victories Total Value', value: `${data.events.totalValue}`, inline: true },
-            { name: 'Victories Completed', value: Object.entries(data.events.completed).length > 0 ? Object.entries(data.events.completed).map(([category, tiers]) => `${category}: ${tiers.map(tier => `Tier ${tier}`).join(', ')}`).join('\n') : 'None', inline: true }
+            { name: 'Clone Trooper Total Value', value: `${data.cloneTrooper.totalValue}`, inline: true },
+            { name: 'Clone Trooper Tiers Completed', value: data.cloneTrooper.completed.length > 0 ? data.cloneTrooper.completed.map(tier => `Tier ${tier}`).join('\n') : 'None', inline: true },
+            { name: 'ARF Total Value', value: `${data.arf.totalValue}`, inline: true },
+            { name: 'ARF Tiers Completed', value: data.arf.completed.length > 0 ? data.arf.completed.map(tier => `Tier ${tier}`).join('\n') : 'None', inline: true },
+            { name: 'ARC Total Value', value: `${data.arc.totalValue}`, inline: true },
+            { name: 'ARC Tiers Completed', value: data.arc.completed.length > 0 ? data.arc.completed.map(tier => `Tier ${tier}`).join('\n') : 'None', inline: true },
+            { name: 'Republic Commando Total Value', value: `${data.republicCommando.totalValue}`, inline: true },
+            { name: 'Republic Commando Tiers Completed', value: data.republicCommando.completed.length > 0 ? data.republicCommando.completed.map(tier => `Tier ${tier}`).join('\n') : 'None', inline: true }
           )
           .setTimestamp();
       };
 
-      const totalValue = mainStatus.totalValue + sideStatus.totalValue + medalsStatus.totalValue + eventStatus.totalValue;
+      const totalValue = cloneTrooperStatus.totalValue + arfStatus.totalValue + arcStatus.totalValue + republicCommandoStatus.totalValue;
       const totalEmbed = new EmbedBuilder()
         .setTitle(`${userName}'s Total Completion Status`)
         .setColor(0xFFA500) // Orange color
@@ -90,35 +90,35 @@ module.exports = {
         .setTimestamp();
 
       const statusData = {
-        main: mainStatus,
-        side: sideStatus,
-        medals: medalsStatus,
-        events: eventStatus,
+        cloneTrooper: cloneTrooperStatus,
+        arf: arfStatus,
+        arc: arcStatus,
+        republicCommando: republicCommandoStatus,
       };
 
-      const mainEmbed = createEmbed('Main Tier Completion Status', statusData);
-      const sideEmbed = createEmbed('Side Tier Completion Status', statusData);
-      const medalsEmbed = createEmbed('Medals Completion Status', statusData);
-      const eventsEmbed = createEmbed('Event Victories Completion Status', statusData);
+      const cloneTrooperEmbed = createEmbed('Clone Trooper Completion Status', statusData);
+      const arfEmbed = createEmbed('ARF Completion Status', statusData);
+      const arcEmbed = createEmbed('ARC Completion Status', statusData);
+      const republicCommandoEmbed = createEmbed('Republic Commando Completion Status', statusData);
 
       // Create buttons for navigation
       const buttons = new ActionRowBuilder()
         .addComponents(
           new ButtonBuilder()
-            .setCustomId(`main-${uniqueId}`)
-            .setLabel('Main Quest')
+            .setCustomId(`cloneTrooper-${uniqueId}`)
+            .setLabel('Clone Trooper')
             .setStyle(ButtonStyle.Primary),
           new ButtonBuilder()
-            .setCustomId(`side-${uniqueId}`)
-            .setLabel('Side Quest')
+            .setCustomId(`arf-${uniqueId}`)
+            .setLabel('ARF')
             .setStyle(ButtonStyle.Primary),
           new ButtonBuilder()
-            .setCustomId(`medals-${uniqueId}`)
-            .setLabel('Medals')
+            .setCustomId(`arc-${uniqueId}`)
+            .setLabel('ARC')
             .setStyle(ButtonStyle.Primary),
           new ButtonBuilder()
-            .setCustomId(`events-${uniqueId}`)
-            .setLabel('Events')
+            .setCustomId(`republicCommando-${uniqueId}`)
+            .setLabel('Republic Commando')
             .setStyle(ButtonStyle.Primary),
           new ButtonBuilder()
             .setCustomId(`total-${uniqueId}`)
@@ -127,7 +127,7 @@ module.exports = {
         );
 
       // Send the initial embed with buttons
-      const message = await interaction.reply({ embeds: [mainEmbed], components: [buttons], fetchReply: true });
+      const message = await interaction.reply({ embeds: [cloneTrooperEmbed], components: [buttons], fetchReply: true });
 
       // Create a collector to handle button interactions
       const filter = i => i.customId.endsWith(uniqueId) && i.user.id === userId;
@@ -137,14 +137,14 @@ module.exports = {
         if (i.user.id !== userId) {
           return i.reply({ content: 'You are not allowed to use these buttons.', ephemeral: true });
         }
-        if (i.customId === `main-${uniqueId}`) {
-          await i.update({ embeds: [mainEmbed], components: [buttons] });
-        } else if (i.customId === `side-${uniqueId}`) {
-          await i.update({ embeds: [sideEmbed], components: [buttons] });
-        } else if (i.customId === `medals-${uniqueId}`) {
-          await i.update({ embeds: [medalsEmbed], components: [buttons] });
-        } else if (i.customId === `events-${uniqueId}`) {
-          await i.update({ embeds: [eventsEmbed], components: [buttons] });
+        if (i.customId === `cloneTrooper-${uniqueId}`) {
+          await i.update({ embeds: [cloneTrooperEmbed], components: [buttons] });
+        } else if (i.customId === `arf-${uniqueId}`) {
+          await i.update({ embeds: [arfEmbed], components: [buttons] });
+        } else if (i.customId === `arc-${uniqueId}`) {
+          await i.update({ embeds: [arcEmbed], components: [buttons] });
+        } else if (i.customId === `republicCommando-${uniqueId}`) {
+          await i.update({ embeds: [republicCommandoEmbed], components: [buttons] });
         } else if (i.customId === `total-${uniqueId}`) {
           await i.update({ embeds: [totalEmbed], components: [buttons] });
         }

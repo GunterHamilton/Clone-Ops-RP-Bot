@@ -296,7 +296,7 @@ Fill out the Tier Checklist for ${currentRoleName} by clicking [here](https://do
             .setStyle(ButtonStyle.Success)
         );
 
-      const embeds = [mainEmbed];
+      const embeds = [totalEmbed];
       if (promotionMessage) {
         embeds.push(new EmbedBuilder().setTitle('Promotion!').setDescription(promotionMessage).setColor(0x00FF00).setTimestamp());
       }

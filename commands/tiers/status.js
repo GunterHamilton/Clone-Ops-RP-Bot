@@ -113,8 +113,8 @@ module.exports = {
       // Check if the user has completed the quota for the current stage
       let resetMessage = '';
       const currentStageIndex = mainStatus.stage - 1;
-      console.log(`Current Stage: ${mainStatus.stage}, Total Value: ${mainStatus.totalValue}, Required: ${stagePoints[category][currentStageIndex]}`);
-      if (currentStageIndex < stagePoints[category].length && mainStatus.totalValue >= stagePoints[category][currentStageIndex]) {
+      console.log(`Current Stage: ${mainStatus.stage}, Total Value: ${totalValue}, Required: ${stagePoints[category][currentStageIndex]}`);
+      if (currentStageIndex < stagePoints[category].length && totalValue >= stagePoints[category][currentStageIndex]) {
         resetMessage = `You have completed the quota to move onto the next stage! Your progress has now been reset!`;
 
         // Increment the user's stage and reset their progress

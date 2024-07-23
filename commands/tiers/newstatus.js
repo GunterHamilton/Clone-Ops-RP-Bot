@@ -83,20 +83,26 @@ module.exports = {
       const eventStatus = await fetchCategoryStatus('victories');
 
       const createEmbed = (title, totalValue, completed) => {
+        let completedValue = 'None';
+        if (Array.isArray(completed)) {
+          completedValue = completed.length > 0 ? completed.map(tier => `Tier ${tier}`).join('\n') : 'None';
+        } else if (typeof completed === 'object' && completed !== null) {
+          completedValue = Object.entries(completed).length > 0 ? Object.entries(completed).map(([category, tiers]) => `${category}: ${tiers.map(tier => `Tier ${tier}`).join(', ')}`).join('\n') : 'None';
+        }
         return new EmbedBuilder()
           .setTitle(`${userName}'s ${title} (${category.toUpperCase()} Tier ${stage})`)
           .setColor(0xFFA500) // Orange color
           .addFields(
             { name: 'Total Value', value: `${totalValue}`, inline: false },
-            { name: 'Completed', value: completed.length > 0 ? completed.map(tier => `Tier ${tier}`).join('\n') : 'None', inline: false }
+            { name: 'Completed', value: completedValue, inline: false }
           )
           .setTimestamp();
       };
 
       const mainEmbed = createEmbed('Main Tier Completion Status', mainStatus.totalValue, mainStatus.completed);
       const sideEmbed = createEmbed('Side Tier Completion Status', sideStatus.totalValue, sideStatus.completed);
-      const medalsEmbed = createEmbed('Medals Completion Status', medalsStatus.totalValue, Object.entries(medalsStatus.completed).length > 0 ? Object.entries(medalsStatus.completed).map(([category, tiers]) => `${category}: ${tiers.map(tier => `Tier ${tier}`).join(', ')}`).join('\n') : []);
-      const eventsEmbed = createEmbed('Event Victories Completion Status', eventStatus.totalValue, Object.entries(eventStatus.completed).length > 0 ? Object.entries(eventStatus.completed).map(([category, tiers]) => `${category}: ${tiers.map(tier => `Tier ${tier}`).join(', ')}`).join('\n') : []);
+      const medalsEmbed = createEmbed('Medals Completion Status', medalsStatus.totalValue, medalsStatus.completed);
+      const eventsEmbed = createEmbed('Event Victories Completion Status', eventStatus.totalValue, eventStatus.completed);
 
       const totalValue = mainStatus.totalValue + sideStatus.totalValue + medalsStatus.totalValue + eventStatus.totalValue;
       const totalEmbed = new EmbedBuilder()
@@ -106,11 +112,11 @@ module.exports = {
           { name: 'Main Tier Total Value', value: `${mainStatus.totalValue}`, inline: true },
           { name: 'Main Tiers Completed', value: mainStatus.completed.length > 0 ? mainStatus.completed.map(tier => `Tier ${tier}`).join('\n') : 'None', inline: true },
           { name: 'Side Tier Total Value', value: `${sideStatus.totalValue}`, inline: true },
-          { name: 'Side Tiers Completed', value: `${sideStatus.completed.length > 0 ? sideStatus.completed.map(tier => `Tier ${tier}`).join('\n') : 'None'}`, inline: true },
+          { name: 'Side Tiers Completed', value: sideStatus.completed.length > 0 ? sideStatus.completed.map(tier => `Tier ${tier}`).join('\n') : 'None', inline: true },
           { name: 'Medals Total Value', value: `${medalsStatus.totalValue}`, inline: true },
-          { name: 'Medals Completed', value: `${Object.entries(medalsStatus.completed).length > 0 ? Object.entries(medalsStatus.completed).map(([category, tiers]) => `${category}: ${tiers.map(tier => `Tier ${tier}`).join(', ')}`).join('\n') : 'None'}`, inline: true },
+          { name: 'Medals Completed', value: Object.entries(medalsStatus.completed).length > 0 ? Object.entries(medalsStatus.completed).map(([category, tiers]) => `${category}: ${tiers.map(tier => `Tier ${tier}`).join(', ')}`).join('\n') : 'None', inline: true },
           { name: 'Event Victories Total Value', value: `${eventStatus.totalValue}`, inline: true },
-          { name: 'Victories Completed', value: `${Object.entries(eventStatus.completed).length > 0 ? Object.entries(eventStatus.completed).map(([category, tiers]) => `${category}: ${tiers.map(tier => `Tier ${tier}`).join(', ')}`).join('\n') : 'None'}`, inline: true },
+          { name: 'Victories Completed', value: Object.entries(eventStatus.completed).length > 0 ? Object.entries(eventStatus.completed).map(([category, tiers]) => `${category}: ${tiers.map(tier => `Tier ${tier}`).join(', ')}`).join('\n') : 'None', inline: true },
           { name: 'Overall Total Value', value: `${totalValue}`, inline: true }
         )
         .setTimestamp();

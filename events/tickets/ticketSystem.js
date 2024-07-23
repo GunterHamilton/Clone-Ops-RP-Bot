@@ -20,15 +20,16 @@ module.exports = {
         user_id VARCHAR(255) NOT NULL,
         ticket_number INT NOT NULL AUTO_INCREMENT,
         category VARCHAR(255) NOT NULL,
+        channel_id VARCHAR(255) NOT NULL,
         PRIMARY KEY (user_id, category),
         UNIQUE (ticket_number)
       )
     `);
 
-    // Alter table to add ticket_number column if it does not exist
+    // Alter table to add channel_id column if it does not exist
     await connection.execute(`
       ALTER TABLE tickets
-      ADD COLUMN IF NOT EXISTS ticket_number INT AUTO_INCREMENT PRIMARY KEY;
+      ADD COLUMN IF NOT EXISTS channel_id VARCHAR(255);
     `);
 
     const channel = await client.channels.fetch(process.env.TICKET_CHANNEL_ID);
@@ -100,13 +101,8 @@ module.exports = {
         return interaction.reply({ content: 'You already have an open ticket in this category.', ephemeral: true });
       }
 
-      await connection.execute('INSERT INTO tickets (user_id, category) VALUES (?, ?)', [userId, category]);
-
-      const [result] = await connection.execute('SELECT ticket_number FROM tickets WHERE user_id = ? AND category = ?', [userId, category]);
-      const ticketNumber = result[0].ticket_number;
-
       const ticketChannel = await interaction.guild.channels.create({
-        name: `${category}-${ticketNumber}`,
+        name: `${category}-${userName}`,
         type: 0, // 0 is for text channels in discord.js v14
         parent: categoryId,
         permissionOverwrites: [
@@ -124,6 +120,11 @@ module.exports = {
           }
         ]
       });
+
+      await connection.execute('INSERT INTO tickets (user_id, category, channel_id) VALUES (?, ?, ?)', [userId, category, ticketChannel.id]);
+
+      const [result] = await connection.execute('SELECT ticket_number FROM tickets WHERE user_id = ? AND category = ?', [userId, category]);
+      const ticketNumber = result[0].ticket_number;
 
       const ticketEmbed = new EmbedBuilder()
         .setTitle('Ticket Created')

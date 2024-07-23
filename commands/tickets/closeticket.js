@@ -11,12 +11,10 @@ module.exports = {
     .setName('close-ticket')
     .setDescription('Close the current open ticket in this channel'),
   async execute(interaction) {
+    const channelId = interaction.channel.id;
     const channelName = interaction.channel.name;
-    
-    // Adjust the category extraction logic
-    const categoryName = channelName.split('-').slice(0, 2).join('-'); 
 
-    console.log(`Attempting to close ticket in category: ${categoryName}`);
+    console.log(`Attempting to close ticket in channel: ${channelName}`);
 
     try {
       const connection = await mysql.createConnection({
@@ -26,25 +24,21 @@ module.exports = {
         database: process.env.DB_NAME
       });
 
-      const [rows] = await connection.execute('SELECT * FROM tickets WHERE category = ?', [categoryName]);
+      const [rows] = await connection.execute('SELECT * FROM tickets WHERE channel_id = ?', [channelId]);
 
       console.log(`Database query result: ${JSON.stringify(rows)}`);
 
       if (rows.length === 0) {
-        return interaction.reply({ content: 'There is no open ticket in this category for this channel.', ephemeral: true });
+        return interaction.reply({ content: 'There is no open ticket in this channel.', ephemeral: true });
       }
 
-      const ticket = rows.find(row => row.channel_name === channelName);
-
-      if (!ticket) {
-        return interaction.reply({ content: 'There is no open ticket in this category for this channel.', ephemeral: true });
-      }
-
+      const ticket = rows[0];
       const ticketNumber = ticket.ticket_number;
       const userId = ticket.user_id;
       const userName = ticket.user_name;
+      const categoryName = ticket.category;
 
-      await connection.execute('DELETE FROM tickets WHERE user_id = ? AND category = ?', [userId, categoryName]);
+      await connection.execute('DELETE FROM tickets WHERE channel_id = ?', [channelId]);
 
       // Generate transcript
       async function fetchAllMessages(channel) {

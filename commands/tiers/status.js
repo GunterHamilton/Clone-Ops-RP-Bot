@@ -1,11 +1,11 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, SelectMenuBuilder } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const mysql = require('mysql2/promise');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('status')
-    .setDescription('Displays your tier completion status across all categories.')
+    .setDescription('Displays tier completion status across all categories.')
     .addStringOption(option =>
       option.setName('category')
         .setDescription('Select the category')
@@ -15,10 +15,14 @@ module.exports = {
           { name: 'ARF', value: 'arf' },
           { name: 'Clone Trooper', value: 'clone_trooper' },
           { name: 'Republic Commando', value: 'republic_commando' }
-        )),
+        ))
+    .addUserOption(option =>
+      option.setName('target')
+        .setDescription('Select a user to view their status')),
   async execute(interaction) {
-    const userId = interaction.user.id;
-    const userName = interaction.user.tag;
+    const targetUser = interaction.options.getUser('target') || interaction.user;
+    const userId = targetUser.id;
+    const userName = targetUser.tag;
     const uniqueId = Date.now().toString(); // Unique identifier for this interaction
     const category = interaction.options.getString('category');
 
@@ -80,15 +84,6 @@ module.exports = {
           .setTimestamp();
       };
 
-      const totalValue = mainStatus.totalValue + sideStatus.totalValue + medalsStatus.totalValue + eventStatus.totalValue;
-      const totalEmbed = new EmbedBuilder()
-        .setTitle(`${userName}'s Total Completion Status (${category.toUpperCase()})`)
-        .setColor(0xFFA500) // Orange color
-        .addFields(
-          { name: 'Total Value', value: `${totalValue}`, inline: true }
-        )
-        .setTimestamp();
-
       const statusData = {
         main: mainStatus,
         side: sideStatus,
@@ -100,6 +95,20 @@ module.exports = {
       const sideEmbed = createEmbed('Side Tier Completion Status', statusData);
       const medalsEmbed = createEmbed('Medals Completion Status', statusData);
       const eventsEmbed = createEmbed('Event Victories Completion Status', statusData);
+
+      const totalValue = mainStatus.totalValue + sideStatus.totalValue + medalsStatus.totalValue + eventStatus.totalValue;
+      const totalTiersCompleted = [...mainStatus.completed, ...sideStatus.completed, ...Object.values(medalsStatus.completed).flat(), ...Object.values(eventStatus.completed).flat()];
+
+      const totalEmbed = new EmbedBuilder()
+        .setTitle(`${userName}'s Total Completion Status (${category.toUpperCase()})`)
+        .setColor(0xFFA500) // Orange color
+        .addFields(
+          { name: 'Total Value', value: `${totalValue}`, inline: true },
+          { name: 'Tiers Completed', value: totalTiersCompleted.length > 0 ? totalTiersCompleted.map(tier => `Tier ${tier}`).join('\n') : 'None', inline: true }
+        )
+        .setTimestamp();
+
+      await connection.end();
 
       // Create buttons for navigation
       const buttons = new ActionRowBuilder()
@@ -130,13 +139,10 @@ module.exports = {
       const message = await interaction.reply({ embeds: [mainEmbed], components: [buttons], fetchReply: true });
 
       // Create a collector to handle button interactions
-      const filter = i => i.customId.endsWith(uniqueId) && i.user.id === userId;
+      const filter = i => i.customId.endsWith(uniqueId) && i.user.id === interaction.user.id;
       const collector = message.createMessageComponentCollector({ filter, time: 60000 });
 
       collector.on('collect', async i => {
-        if (i.user.id !== userId) {
-          return i.reply({ content: 'You are not allowed to use these buttons.', ephemeral: true });
-        }
         if (i.customId === `main-${uniqueId}`) {
           await i.update({ embeds: [mainEmbed], components: [buttons] });
         } else if (i.customId === `side-${uniqueId}`) {
@@ -168,11 +174,9 @@ module.exports = {
         }
       });
 
-      await connection.end();
-
     } catch (error) {
       console.error('Database error:', error);
-      await interaction.reply({ content: 'There was an error retrieving your status from the database.', ephemeral: true });
+      await interaction.reply({ content: 'There was an error retrieving the status from the database.', ephemeral: true });
     }
   },
 };

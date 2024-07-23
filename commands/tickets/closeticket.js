@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { PermissionsBitField, EmbedBuilder, AttachmentBuilder } = require('discord.js');
+const { EmbedBuilder } = require('discord.js');
 const mysql = require('mysql2/promise');
 const axios = require('axios');
 const fs = require('fs');
@@ -26,7 +26,7 @@ module.exports = {
         database: process.env.DB_NAME
       });
 
-      const [rows] = await connection.execute('SELECT * FROM tickets WHERE category = ? AND channel_name = ?', [categoryName, channelName]);
+      const [rows] = await connection.execute('SELECT * FROM tickets WHERE category = ?', [categoryName]);
 
       console.log(`Database query result: ${JSON.stringify(rows)}`);
 
@@ -34,11 +34,17 @@ module.exports = {
         return interaction.reply({ content: 'There is no open ticket in this category for this channel.', ephemeral: true });
       }
 
-      const ticketNumber = rows[0].ticket_number;
-      const userId = rows[0].user_id;
-      const userName = rows[0].user_name;
+      const ticket = rows.find(row => row.channel_name === channelName);
 
-      await connection.execute('DELETE FROM tickets WHERE category = ? AND channel_name = ?', [categoryName, channelName]);
+      if (!ticket) {
+        return interaction.reply({ content: 'There is no open ticket in this category for this channel.', ephemeral: true });
+      }
+
+      const ticketNumber = ticket.ticket_number;
+      const userId = ticket.user_id;
+      const userName = ticket.user_name;
+
+      await connection.execute('DELETE FROM tickets WHERE user_id = ? AND category = ?', [userId, categoryName]);
 
       // Generate transcript
       async function fetchAllMessages(channel) {

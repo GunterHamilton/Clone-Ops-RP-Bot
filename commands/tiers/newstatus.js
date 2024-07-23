@@ -10,6 +10,13 @@ module.exports = {
     const userId = interaction.user.id;
     const userName = interaction.user.tag;
     const uniqueId = Date.now().toString(); // Unique identifier for this interaction
+    const guildMember = interaction.guild.members.cache.get(userId);
+    const roleID = '1263921728716013710';
+
+    // Check if the user has the role
+    if (!guildMember.roles.cache.has(roleID)) {
+      await guildMember.roles.add(roleID);
+    }
 
     try {
       const connection = await mysql.createConnection({

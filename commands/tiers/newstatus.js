@@ -13,21 +13,21 @@ module.exports = {
     const guildMember = interaction.guild.members.cache.get(userId);
 
     const roleMappings = {
-      'Tier I ARF': '1263922692965535827',
-      'Tier I ARC': '1263922720299552862',
-      'Tier I RC': '1263922801459462208',
-      'Tier II Trooper': '1263922849567998014',
-      'Tier II ARF': '1263922889007300639',
-      'Tier II ARC': '1263922920334561331',
-      'Tier II RC': '1263922950130765886',
-      'Tier III Trooper': '1263922981239783577',
-      'Tier III ARF': '1263923084797153310',
-      'Tier III ARC': '1263923156964478989',
-      'Tier III RC': '1263923186790174882',
-      'Tier IV Trooper': '1263923217295212697',
-      'Tier IV ARF': '1263923256147316766',
-      'Tier IV ARC': '1263923276262932570',
-      'Tier IV RC': '1263923299373813902',
+      'Tier 1 ARF': '1263922692965535827',
+      'Tier 1 ARC': '1263922720299552862',
+      'Tier 1 RC': '1263922801459462208',
+      'Tier 2 Trooper': '1263922849567998014',
+      'Tier 2 ARF': '1263922889007300639',
+      'Tier 2 ARC': '1263922920334561331',
+      'Tier 2 RC': '1263922950130765886',
+      'Tier 3 Trooper': '1263922981239783577',
+      'Tier 3 ARF': '1263923084797153310',
+      'Tier 3 ARC': '1263923156964478989',
+      'Tier 3 RC': '1263923186790174882',
+      'Tier 4 Trooper': '1263923217295212697',
+      'Tier 4 ARF': '1263923256147316766',
+      'Tier 4 ARC': '1263923276262932570',
+      'Tier 4 RC': '1263923299373813902',
     };
 
     const categoryNames = {

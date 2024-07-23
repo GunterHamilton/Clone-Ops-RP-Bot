@@ -13,6 +13,7 @@ module.exports = {
     const guildMember = interaction.guild.members.cache.get(userId);
 
     const roleMappings = {
+      'Tier 1 Trooper': '1263921728716013710',
       'Tier 1 ARF': '1263922692965535827',
       'Tier 1 ARC': '1263922720299552862',
       'Tier 1 RC': '1263922801459462208',

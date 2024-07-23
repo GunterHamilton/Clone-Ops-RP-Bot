@@ -1,7 +1,12 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const mysql = require('mysql2/promise');
 
-const MAX_TOTAL_VALUE = 65;
+const STAGE_COMPLETION_POINTS = {
+  'arc': 500,
+  'arf': 400,
+  'clone_trooper': 250,
+  'republic_commando': 550
+};
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -81,12 +86,6 @@ module.exports = {
         totalValue = rows[0].total_value;
       }
 
-      // Check if the user has already completed this tier
-      if (tiersCompleted.includes(tierNumber)) {
-        await connection.end();
-        return interaction.reply({ content: `You have already completed Tier ${tierNumber} in the ${category} category.`, ephemeral: true });
-      }
-
       // Update the user's total tier value and completed tiers
       totalValue += value;
       tiersCompleted.push(tierNumber);
@@ -101,9 +100,22 @@ module.exports = {
         updated_at = CURRENT_TIMESTAMP
       `;
       await connection.execute(query, [userId, userName, totalValue, JSON.stringify(tiersCompleted)]);
-      await connection.end();
 
-      await interaction.reply({ content: `Tier ${tierNumber} completed with value ${value} in the ${category} category. Your total value is now ${totalValue}.`, ephemeral: true });
+      // Check if the user has completed the current stage and reset progress if necessary
+      if (totalValue >= STAGE_COMPLETION_POINTS[category]) {
+        await connection.execute(`DELETE FROM ${tableName} WHERE user_id = ?`, [userId]);
+        await interaction.reply({
+          content: `You have completed the quota to move onto the next stage! Your progress has now been reset!`,
+          ephemeral: true
+        });
+      } else {
+        await interaction.reply({
+          content: `Tier ${tierNumber} completed with value ${value} in the ${category} category. Your total value is now ${totalValue}.`,
+          ephemeral: true
+        });
+      }
+
+      await connection.end();
     } catch (error) {
       console.error('Database error:', error);
       await interaction.reply({ content: 'There was an error saving your tier to the database.', ephemeral: true });

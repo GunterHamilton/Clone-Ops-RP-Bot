@@ -1,15 +1,26 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, SelectMenuBuilder } = require('discord.js');
 const mysql = require('mysql2/promise');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('status')
-    .setDescription('Displays your tier completion status across all categories.'),
+    .setDescription('Displays your tier completion status across all categories.')
+    .addStringOption(option =>
+      option.setName('category')
+        .setDescription('Select the category')
+        .setRequired(true)
+        .addChoices(
+          { name: 'ARC', value: 'arc' },
+          { name: 'ARF', value: 'arf' },
+          { name: 'Clone Trooper', value: 'clone_trooper' },
+          { name: 'Republic Commando', value: 'republic_commando' }
+        )),
   async execute(interaction) {
     const userId = interaction.user.id;
     const userName = interaction.user.tag;
     const uniqueId = Date.now().toString(); // Unique identifier for this interaction
+    const category = interaction.options.getString('category');
 
     try {
       const connection = await mysql.createConnection({
@@ -19,11 +30,11 @@ module.exports = {
         database: process.env.DB_NAME
       });
 
-      // Ensure the necessary tables exist
+      // Ensure the necessary tables exist for the selected category
       const tables = ['main_tiers', 'side_tiers', 'medals', 'event_victories'];
       for (const table of tables) {
         await connection.execute(`
-          CREATE TABLE IF NOT EXISTS ${table} (
+          CREATE TABLE IF NOT EXISTS ${category}_${table} (
             user_id VARCHAR(255) NOT NULL PRIMARY KEY,
             user_name VARCHAR(255) NOT NULL,
             total_value INT NOT NULL DEFAULT 0,
@@ -35,7 +46,7 @@ module.exports = {
       }
 
       const fetchCategoryStatus = async (tableName) => {
-        const [rows] = await connection.execute(`SELECT * FROM ${tableName} WHERE user_id = ?`, [userId]);
+        const [rows] = await connection.execute(`SELECT * FROM ${category}_${tableName} WHERE user_id = ?`, [userId]);
         let totalValue = 0;
         let completed = tableName === 'main_tiers' || tableName === 'side_tiers' ? [] : {};
 
@@ -54,7 +65,7 @@ module.exports = {
 
       const createEmbed = (title, data) => {
         return new EmbedBuilder()
-          .setTitle(`${userName}'s ${title}`)
+          .setTitle(`${userName}'s ${title} (${category.toUpperCase()})`)
           .setColor(0xFFA500) // Orange color
           .addFields(
             { name: 'Main Tier Total Value', value: `${data.main.totalValue}`, inline: true },
@@ -71,7 +82,7 @@ module.exports = {
 
       const totalValue = mainStatus.totalValue + sideStatus.totalValue + medalsStatus.totalValue + eventStatus.totalValue;
       const totalEmbed = new EmbedBuilder()
-        .setTitle(`${userName}'s Total Completion Status`)
+        .setTitle(`${userName}'s Total Completion Status (${category.toUpperCase()})`)
         .setColor(0xFFA500) // Orange color
         .addFields(
           { name: 'Total Value', value: `${totalValue}`, inline: true }

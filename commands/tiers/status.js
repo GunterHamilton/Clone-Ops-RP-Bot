@@ -41,7 +41,7 @@ module.exports = {
         database: process.env.DB_NAME
       });
 
-      // Ensure the necessary tables exist for the selected category
+      // Ensure the necessary tables exist for the selected category and add stage column if it doesn't exist
       const tables = ['main_tiers', 'side_tiers', 'medals', 'victories'];
       for (const table of tables) {
         await connection.execute(`
@@ -54,6 +54,12 @@ module.exports = {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
           )
+        `);
+
+        // Add stage column if it doesn't exist
+        await connection.execute(`
+          ALTER TABLE ${category}_${table} 
+          ADD COLUMN IF NOT EXISTS stage INT NOT NULL DEFAULT 1
         `);
       }
 
@@ -121,12 +127,11 @@ module.exports = {
         const newStage = mainStatus.stage + 1;
 
         for (const table of tables) {
-          await connection.execute(`DELETE FROM ${category}_${table} WHERE user_id = ?`, [userId]);
           await connection.execute(`
-            INSERT INTO ${category}_${table} (user_id, user_name, total_value, ${table === 'main_tiers' || table === 'side_tiers' ? 'tiers_completed' : table === 'medals' ? 'medals_completed' : 'victories_completed'}, stage)
-            VALUES (?, ?, 0, ?, ?)
-            ON DUPLICATE KEY UPDATE user_name = VALUES(user_name), total_value = 0, ${table === 'main_tiers' || table === 'side_tiers' ? 'tiers_completed' : table === 'medals' ? 'medals_completed' : 'victories_completed'} = VALUES(${table === 'main_tiers' || table === 'side_tiers' ? 'tiers_completed' : table === 'medals' ? 'medals_completed' : 'victories_completed'}), stage = ?
-          `, [userId, userName, table === 'main_tiers' || table === 'side_tiers' ? '[]' : '{}', newStage, newStage]);
+            UPDATE ${category}_${table} 
+            SET total_value = 0, ${table === 'main_tiers' || table === 'side_tiers' ? 'tiers_completed' : table === 'medals' ? 'medals_completed' : 'victories_completed'} = ?, stage = ? 
+            WHERE user_id = ?
+          `, [table === 'main_tiers' || table === 'side_tiers' ? '[]' : '{}', newStage, userId]);
         }
       }
 

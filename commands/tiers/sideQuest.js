@@ -1,12 +1,27 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const mysql = require('mysql2/promise');
 
-const MAX_TOTAL_VALUE = 39;
+const STAGE_COMPLETION_POINTS = {
+  'arc': 500,
+  'arf': 400,
+  'clone_trooper': 250,
+  'republic_commando': 550
+};
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('side-quest')
     .setDescription('Select a side tier.')
+    .addStringOption(option =>
+      option.setName('category')
+        .setDescription('Select the category')
+        .setRequired(true)
+        .addChoices(
+          { name: 'ARC', value: 'arc' },
+          { name: 'ARF', value: 'arf' },
+          { name: 'Clone Trooper', value: 'clone_trooper' },
+          { name: 'Republic Commando', value: 'republic_commando' }
+        ))
     .addIntegerOption(option =>
       option.setName('tier')
         .setDescription('Select a side tier number (1-4)')
@@ -19,6 +34,7 @@ module.exports = {
         )),
   async execute(interaction) {
     const tierNumber = interaction.options.getInteger('tier');
+    const category = interaction.options.getString('category');
     const userId = interaction.user.id;
     const userName = interaction.user.tag;
 
@@ -31,8 +47,9 @@ module.exports = {
       });
 
       // Check if the table exists, and create it if it doesn't
+      const tableName = `${category}_side_tiers`;
       await connection.execute(`
-        CREATE TABLE IF NOT EXISTS side_tiers (
+        CREATE TABLE IF NOT EXISTS ${tableName} (
           user_id VARCHAR(255) NOT NULL PRIMARY KEY,
           user_name VARCHAR(255) NOT NULL,
           total_value INT NOT NULL DEFAULT 0,
@@ -40,14 +57,6 @@ module.exports = {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )
-      `);
-
-      // Ensure columns are correct
-      await connection.execute(`
-        ALTER TABLE side_tiers 
-        ADD COLUMN IF NOT EXISTS total_value INT NOT NULL DEFAULT 0,
-        ADD COLUMN IF NOT EXISTS tiers_completed JSON NOT NULL DEFAULT '[]',
-        ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       `);
 
       // Determine the value based on the tier number
@@ -70,7 +79,7 @@ module.exports = {
       }
 
       // Check if the user has already completed this tier
-      const [rows] = await connection.execute('SELECT * FROM side_tiers WHERE user_id = ?', [userId]);
+      const [rows] = await connection.execute(`SELECT * FROM ${tableName} WHERE user_id = ?`, [userId]);
       let tiersCompleted = [];
       let totalValue = 0;
 
@@ -84,7 +93,7 @@ module.exports = {
       tiersCompleted.push(tierNumber);
 
       const query = `
-        INSERT INTO side_tiers (user_id, user_name, total_value, tiers_completed)
+        INSERT INTO ${tableName} (user_id, user_name, total_value, tiers_completed)
         VALUES (?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
         user_name = VALUES(user_name),
@@ -93,9 +102,22 @@ module.exports = {
         updated_at = CURRENT_TIMESTAMP
       `;
       await connection.execute(query, [userId, userName, totalValue, JSON.stringify(tiersCompleted)]);
-      await connection.end();
 
-      await interaction.reply({ content: `Tier ${tierNumber} completed with value ${value}. Your total value is now ${totalValue}.`, ephemeral: true });
+      // Check if the user has completed the current stage and reset progress if necessary
+      if (totalValue >= STAGE_COMPLETION_POINTS[category]) {
+        await connection.execute(`DELETE FROM ${tableName} WHERE user_id = ?`, [userId]);
+        await interaction.reply({
+          content: `You have completed the quota to move onto the next stage! Your progress has now been reset!`,
+          ephemeral: true
+        });
+      } else {
+        await interaction.reply({
+          content: `Tier ${tierNumber} completed with value ${value} in the ${category} category. Your total value is now ${totalValue}.`,
+          ephemeral: true
+        });
+      }
+
+      await connection.end();
     } catch (error) {
       console.error('Database error:', error);
       await interaction.reply({ content: 'There was an error saving your tier to the database.', ephemeral: true });

@@ -9,6 +9,13 @@ const VALUES = {
   RCT: [15, 25, 45, 125]
 };
 
+const STAGE_COMPLETION_POINTS = {
+  'arc': 500,
+  'arf': 400,
+  'clone_trooper': 250,
+  'republic_commando': 550
+};
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('medals')
@@ -129,9 +136,21 @@ module.exports = {
               updated_at = CURRENT_TIMESTAMP
             `, [userId, userName, totalValue, JSON.stringify(medalsCompleted)]);
 
-            await connection.end();
+            // Check if the user has completed the current stage and reset progress if necessary
+            if (totalValue >= STAGE_COMPLETION_POINTS[category]) {
+              await connection.execute(`DELETE FROM medals WHERE user_id = ?`, [userId]);
+              await j.reply({
+                content: `You have completed the quota to move onto the next stage! Your progress has now been reset!`,
+                ephemeral: true
+              });
+            } else {
+              await j.reply({
+                content: `${category} Tier ${tier} completed with value ${value}. Your total value is now ${totalValue}.`,
+                ephemeral: true
+              });
+            }
 
-            await j.reply({ content: `${category} Tier ${tier} completed with value ${value}. Your total value is now ${totalValue}.`, ephemeral: true });
+            await connection.end();
             // Delete the initial interaction message
             await message.delete();
           } catch (error) {

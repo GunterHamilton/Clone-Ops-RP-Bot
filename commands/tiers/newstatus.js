@@ -126,14 +126,12 @@ module.exports = {
       const fetchCategoryStatus = async (tableName) => {
         const [rows] = await connection.execute(`SELECT * FROM ${category}_${tableName} WHERE user_id = ?`, [userId]);
         let totalValue = 0;
-        let completed = tableName === 'main_tiers' || tableName === 'side_tiers' ? [] : {};
 
         if (rows.length > 0) {
           totalValue = rows[0].total_value;
-          completed = JSON.parse(rows[0][tableName === 'main_tiers' || tableName === 'side_tiers' ? 'tiers_completed' : tableName === 'medals' ? 'medals_completed' : 'victories_completed']);
         }
 
-        return { totalValue, completed };
+        return { totalValue };
       };
 
       const mainStatus = await fetchCategoryStatus('main_tiers');
@@ -143,40 +141,29 @@ module.exports = {
 
       const totalValue = mainStatus.totalValue + sideStatus.totalValue + medalsStatus.totalValue + eventStatus.totalValue;
 
-      const createEmbed = (title, totalValue, completed) => {
-        let completedValue = 'None';
-        if (Array.isArray(completed)) {
-          completedValue = completed.length > 0 ? completed.map(tier => `Tier ${tier}`).join('\n') : 'None';
-        } else if (typeof completed === 'object' && completed !== null) {
-          completedValue = Object.entries(completed).length > 0 ? Object.entries(completed).map(([category, tiers]) => `${category}: ${tiers.map(tier => `Tier ${tier}`).join(', ')}`).join('\n') : 'None';
-        }
+      const createEmbed = (title, totalValue) => {
         return new EmbedBuilder()
           .setTitle(`${userName}'s ${title} (${category.toUpperCase()} Tier ${stage})`)
           .setColor(0xFFA500) // Orange color
           .addFields(
-            { name: 'Total Value', value: `${totalValue}`, inline: false },
-            { name: 'Completed', value: completedValue, inline: false }
+            { name: 'Total Value', value: `${totalValue}`, inline: false }
           )
           .setTimestamp();
       };
 
-      const mainEmbed = createEmbed('Main Tier Completion Status', mainStatus.totalValue, mainStatus.completed);
-      const sideEmbed = createEmbed('Side Tier Completion Status', sideStatus.totalValue, sideStatus.completed);
-      const medalsEmbed = createEmbed('Medals Completion Status', medalsStatus.totalValue, medalsStatus.completed);
-      const eventsEmbed = createEmbed('Event Victories Completion Status', eventStatus.totalValue, eventStatus.completed);
+      const mainEmbed = createEmbed('Main Tier Completion Status', mainStatus.totalValue);
+      const sideEmbed = createEmbed('Side Tier Completion Status', sideStatus.totalValue);
+      const medalsEmbed = createEmbed('Medals Completion Status', medalsStatus.totalValue);
+      const eventsEmbed = createEmbed('Event Victories Completion Status', eventStatus.totalValue);
 
       const totalEmbed = new EmbedBuilder()
         .setTitle(`${userName}'s Total Completion Status (${category.toUpperCase()} Tier ${stage})`)
         .setColor(0xFFA500) // Orange color
         .addFields(
           { name: 'Main Tier Total Value', value: `${mainStatus.totalValue}`, inline: true },
-          { name: 'Main Tiers Completed', value: mainStatus.completed.length > 0 ? mainStatus.completed.map(tier => `Tier ${tier}`).join('\n') : 'None', inline: true },
           { name: 'Side Tier Total Value', value: `${sideStatus.totalValue}`, inline: true },
-          { name: 'Side Tiers Completed', value: sideStatus.completed.length > 0 ? sideStatus.completed.map(tier => `Tier ${tier}`).join('\n') : 'None', inline: true },
           { name: 'Medals Total Value', value: `${medalsStatus.totalValue}`, inline: true },
-          { name: 'Medals Completed', value: Object.entries(medalsStatus.completed).length > 0 ? Object.entries(medalsStatus.completed).map(([category, tiers]) => `${category}: ${tiers.map(tier => `Tier ${tier}`).join(', ')}`).join('\n') : 'None', inline: true },
           { name: 'Event Victories Total Value', value: `${eventStatus.totalValue}`, inline: true },
-          { name: 'Victories Completed', value: Object.entries(eventStatus.completed).length > 0 ? Object.entries(eventStatus.completed).map(([category, tiers]) => `${category}: ${tiers.map(tier => `Tier ${tier}`).join(', ')}`).join('\n') : 'None', inline: true },
           { name: 'Overall Total Value', value: `${totalValue}`, inline: true }
         )
         .setTimestamp();
@@ -272,8 +259,13 @@ Fill out the Tier Checklist for ${currentRoleName} by clicking [here](https://do
 
       await connection.end();
 
+      // Create buttons for navigation
       const buttons = new ActionRowBuilder()
         .addComponents(
+          new ButtonBuilder()
+            .setCustomId(`total-${uniqueId}`)
+            .setLabel('Total Status')
+            .setStyle(ButtonStyle.Success),
           new ButtonBuilder()
             .setCustomId(`main-${uniqueId}`)
             .setLabel('Main Quest')
@@ -289,11 +281,7 @@ Fill out the Tier Checklist for ${currentRoleName} by clicking [here](https://do
           new ButtonBuilder()
             .setCustomId(`events-${uniqueId}`)
             .setLabel('Events')
-            .setStyle(ButtonStyle.Primary),
-          new ButtonBuilder()
-            .setCustomId(`total-${uniqueId}`)
-            .setLabel('Total Status')
-            .setStyle(ButtonStyle.Success)
+            .setStyle(ButtonStyle.Primary)
         );
 
       const embeds = [totalEmbed];
@@ -302,6 +290,7 @@ Fill out the Tier Checklist for ${currentRoleName} by clicking [here](https://do
       }
       const message = await interaction.reply({ embeds, components: [buttons], fetchReply: true });
 
+      // Create a collector to handle button interactions
       const filter = i => i.customId.endsWith(uniqueId) && i.user.id === userId;
       const collector = message.createMessageComponentCollector({ filter, time: 60000 });
 

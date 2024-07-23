@@ -9,16 +9,14 @@ const FormData = require('form-data');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('close-ticket')
-    .setDescription('Close your current open ticket'),
+    .setDescription('Close the current open ticket in this channel'),
   async execute(interaction) {
-    const userId = interaction.user.id;
-    const userName = interaction.user.tag;
     const channelName = interaction.channel.name;
     
     // Adjust the category extraction logic
     const categoryName = channelName.split('-').slice(0, 2).join('-'); 
 
-    console.log(`Attempting to close ticket for user: ${userName} in category: ${categoryName}`);
+    console.log(`Attempting to close ticket in category: ${categoryName}`);
 
     try {
       const connection = await mysql.createConnection({
@@ -28,17 +26,19 @@ module.exports = {
         database: process.env.DB_NAME
       });
 
-      const [rows] = await connection.execute('SELECT * FROM tickets WHERE user_id = ? AND category = ?', [userId, categoryName]);
+      const [rows] = await connection.execute('SELECT * FROM tickets WHERE category = ? AND channel_name = ?', [categoryName, channelName]);
 
       console.log(`Database query result: ${JSON.stringify(rows)}`);
 
       if (rows.length === 0) {
-        return interaction.reply({ content: 'You do not have an open ticket in this category.', ephemeral: true });
+        return interaction.reply({ content: 'There is no open ticket in this category for this channel.', ephemeral: true });
       }
 
       const ticketNumber = rows[0].ticket_number;
+      const userId = rows[0].user_id;
+      const userName = rows[0].user_name;
 
-      await connection.execute('DELETE FROM tickets WHERE user_id = ? AND category = ?', [userId, categoryName]);
+      await connection.execute('DELETE FROM tickets WHERE category = ? AND channel_name = ?', [categoryName, channelName]);
 
       // Generate transcript
       async function fetchAllMessages(channel) {
@@ -84,7 +84,7 @@ module.exports = {
         await interaction.channel.delete();
       }, 5000); // Delay to allow message to be seen before deletion
 
-      await interaction.reply({ content: 'Your ticket has been closed and will be deleted shortly.', ephemeral: true });
+      await interaction.reply({ content: 'The ticket has been closed and will be deleted shortly.', ephemeral: true });
 
       // Log to webhook
       const logEmbed = new EmbedBuilder()
@@ -121,7 +121,7 @@ module.exports = {
 
     } catch (error) {
       console.error('Database error:', error);
-      await interaction.reply({ content: 'There was an error closing your ticket.', ephemeral: true });
+      await interaction.reply({ content: 'There was an error closing the ticket.', ephemeral: true });
     }
   },
 };

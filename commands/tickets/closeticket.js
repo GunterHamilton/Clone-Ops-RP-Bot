@@ -13,6 +13,7 @@ module.exports = {
   async execute(interaction) {
     const channelId = interaction.channel.id;
     const channelName = interaction.channel.name;
+    const closerUserName = interaction.user.tag;
 
     console.log(`Attempting to close ticket in channel: ${channelName}`);
 
@@ -74,7 +75,7 @@ module.exports = {
 
       const closeEmbed = new EmbedBuilder()
         .setTitle('Ticket Closed')
-        .setDescription(`The ticket created by ${userName} has been closed.`)
+        .setDescription(`The ticket created by ${userName} has been closed by ${closerUserName}.`)
         .setColor(0xFF0000) // Red
         .setTimestamp();
 
@@ -93,7 +94,8 @@ module.exports = {
           { name: 'User', value: userName || 'Unknown', inline: true },
           { name: 'Channel', value: channelName || 'Unknown', inline: true },
           { name: 'Category', value: categoryName || 'Unknown', inline: true },
-          { name: 'Ticket Number', value: ticketNumber.toString(), inline: true }
+          { name: 'Ticket Number', value: ticketNumber.toString(), inline: true },
+          { name: 'Closed By', value: closerUserName || 'Unknown', inline: true }
         )
         .setColor(0x1E90FF) // Dodger Blue
         .setTimestamp();

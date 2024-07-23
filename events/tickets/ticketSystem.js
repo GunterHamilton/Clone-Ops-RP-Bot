@@ -18,18 +18,13 @@ module.exports = {
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS tickets (
         user_id VARCHAR(255) NOT NULL,
+        user_name VARCHAR(255) NOT NULL,
         ticket_number INT NOT NULL AUTO_INCREMENT,
         category VARCHAR(255) NOT NULL,
         channel_id VARCHAR(255) NOT NULL,
         PRIMARY KEY (user_id, category),
         UNIQUE (ticket_number)
       )
-    `);
-
-    // Alter table to add channel_id column if it does not exist
-    await connection.execute(`
-      ALTER TABLE tickets
-      ADD COLUMN IF NOT EXISTS channel_id VARCHAR(255);
     `);
 
     const channel = await client.channels.fetch(process.env.TICKET_CHANNEL_ID);
@@ -121,7 +116,7 @@ module.exports = {
         ]
       });
 
-      await connection.execute('INSERT INTO tickets (user_id, category, channel_id) VALUES (?, ?, ?)', [userId, category, ticketChannel.id]);
+      await connection.execute('INSERT INTO tickets (user_id, user_name, category, channel_id) VALUES (?, ?, ?, ?)', [userId, userName, category, ticketChannel.id]);
 
       const [result] = await connection.execute('SELECT ticket_number FROM tickets WHERE user_id = ? AND category = ?', [userId, category]);
       const ticketNumber = result[0].ticket_number;

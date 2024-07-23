@@ -5,7 +5,7 @@ const mysql = require('mysql2/promise');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('status')
-    .setDescription('Displays tier completion status across all categories.')
+    .setDescription('Displays your tier completion status across all categories.')
     .addStringOption(option =>
       option.setName('category')
         .setDescription('Select the category')
@@ -26,6 +26,13 @@ module.exports = {
     const uniqueId = Date.now().toString(); // Unique identifier for this interaction
     const category = interaction.options.getString('category');
 
+    const stagePoints = {
+      'trooper': [250, 600, 1000, 1500],
+      'arf': [400, 700, 1100, 1600],
+      'arc': [500, 800, 1200, 1700],
+      'rc': [550, 900, 1400, 2000]
+    };
+
     try {
       const connection = await mysql.createConnection({
         host: process.env.DB_HOST,
@@ -43,6 +50,7 @@ module.exports = {
             user_name VARCHAR(255) NOT NULL,
             total_value INT NOT NULL DEFAULT 0,
             ${table === 'main_tiers' || table === 'side_tiers' ? 'tiers_completed' : table === 'medals' ? 'medals_completed' : 'victories_completed'} JSON NOT NULL DEFAULT '${table === 'main_tiers' || table === 'side_tiers' ? '[]' : '{}'}',
+            stage INT NOT NULL DEFAULT 1,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
           )
@@ -53,13 +61,15 @@ module.exports = {
         const [rows] = await connection.execute(`SELECT * FROM ${category}_${tableName} WHERE user_id = ?`, [userId]);
         let totalValue = 0;
         let completed = tableName === 'main_tiers' || tableName === 'side_tiers' ? [] : {};
+        let stage = 1;
 
         if (rows.length > 0) {
           totalValue = rows[0].total_value;
           completed = JSON.parse(rows[0][tableName === 'main_tiers' || tableName === 'side_tiers' ? 'tiers_completed' : tableName === 'medals' ? 'medals_completed' : 'victories_completed']);
+          stage = rows[0].stage;
         }
 
-        return { totalValue, completed };
+        return { totalValue, completed, stage };
       };
 
       const mainStatus = await fetchCategoryStatus('main_tiers');
@@ -67,9 +77,9 @@ module.exports = {
       const medalsStatus = await fetchCategoryStatus('medals');
       const eventStatus = await fetchCategoryStatus('event_victories');
 
-      const createEmbed = (title, totalValue, completed) => {
+      const createEmbed = (title, totalValue, completed, stage) => {
         return new EmbedBuilder()
-          .setTitle(`${userName}'s ${title} (${category.toUpperCase()})`)
+          .setTitle(`${userName}'s ${title} (${category.toUpperCase()} Stage ${stage})`)
           .setColor(0xFFA500) // Orange color
           .addFields(
             { name: 'Total Value', value: `${totalValue}`, inline: false },
@@ -78,10 +88,10 @@ module.exports = {
           .setTimestamp();
       };
 
-      const mainEmbed = createEmbed('Main Tier Completion Status', mainStatus.totalValue, mainStatus.completed);
-      const sideEmbed = createEmbed('Side Tier Completion Status', sideStatus.totalValue, sideStatus.completed);
-      const medalsEmbed = createEmbed('Medals Completion Status', medalsStatus.totalValue, Object.entries(medalsStatus.completed).length > 0 ? Object.entries(medalsStatus.completed).map(([category, tiers]) => `${category}: ${tiers.map(tier => `Tier ${tier}`).join(', ')}`).join('\n') : []);
-      const eventsEmbed = createEmbed('Event Victories Completion Status', eventStatus.totalValue, Object.entries(eventStatus.completed).length > 0 ? Object.entries(eventStatus.completed).map(([category, tiers]) => `${category}: ${tiers.map(tier => `Tier ${tier}`).join(', ')}`).join('\n') : []);
+      const mainEmbed = createEmbed('Main Tier Completion Status', mainStatus.totalValue, mainStatus.completed, mainStatus.stage);
+      const sideEmbed = createEmbed('Side Tier Completion Status', sideStatus.totalValue, sideStatus.completed, sideStatus.stage);
+      const medalsEmbed = createEmbed('Medals Completion Status', medalsStatus.totalValue, Object.entries(medalsStatus.completed).length > 0 ? Object.entries(medalsStatus.completed).map(([category, tiers]) => `${category}: ${tiers.map(tier => `Tier ${tier}`).join(', ')}`).join('\n') : [], medalsStatus.stage);
+      const eventsEmbed = createEmbed('Event Victories Completion Status', eventStatus.totalValue, Object.entries(eventStatus.completed).length > 0 ? Object.entries(eventStatus.completed).map(([category, tiers]) => `${category}: ${tiers.map(tier => `Tier ${tier}`).join(', ')}`).join('\n') : [], eventStatus.stage);
 
       const totalValue = mainStatus.totalValue + sideStatus.totalValue + medalsStatus.totalValue + eventStatus.totalValue;
       const totalEmbed = new EmbedBuilder()
@@ -99,6 +109,24 @@ module.exports = {
           { name: 'Overall Total Value', value: `${totalValue}`, inline: true }
         )
         .setTimestamp();
+
+      // Check if the user has completed the quota for the current stage
+      let resetMessage = '';
+      if (mainStatus.totalValue >= stagePoints.trooper[mainStatus.stage - 1]) {
+        resetMessage = `You have completed the quota to move onto the next stage! Your progress has now been reset!`;
+
+        // Increment the user's stage and reset their progress
+        const newStage = mainStatus.stage + 1;
+
+        for (const table of tables) {
+          await connection.execute(`DELETE FROM ${category}_${table} WHERE user_id = ?`, [userId]);
+          await connection.execute(`
+            INSERT INTO ${category}_${table} (user_id, user_name, total_value, ${table === 'main_tiers' || table === 'side_tiers' ? 'tiers_completed' : table === 'medals' ? 'medals_completed' : 'victories_completed'}, stage)
+            VALUES (?, ?, 0, ?, ?)
+            ON DUPLICATE KEY UPDATE user_name = VALUES(user_name), total_value = 0, ${table === 'main_tiers' || table === 'side_tiers' ? 'tiers_completed' : table === 'medals' ? 'medals_completed' : 'victories_completed'} = VALUES(${table === 'main_tiers' || table === 'side_tiers' ? 'tiers_completed' : table === 'medals' ? 'medals_completed' : 'victories_completed'}), stage = ?
+          `, [userId, userName, table === 'main_tiers' || table === 'side_tiers' ? '[]' : '{}', newStage, newStage]);
+        }
+      }
 
       await connection.end();
 
@@ -128,13 +156,20 @@ module.exports = {
         );
 
       // Send the initial embed with buttons
-      const message = await interaction.reply({ embeds: [mainEmbed], components: [buttons], fetchReply: true });
+      const embeds = [mainEmbed];
+      if (resetMessage) {
+        embeds.push(new EmbedBuilder().setTitle('Stage Complete!').setDescription(resetMessage).setColor(0x00FF00).setTimestamp());
+      }
+      const message = await interaction.reply({ embeds, components: [buttons], fetchReply: true });
 
       // Create a collector to handle button interactions
-      const filter = i => i.customId.endsWith(uniqueId) && i.user.id === interaction.user.id;
+      const filter = i => i.customId.endsWith(uniqueId) && i.user.id === userId;
       const collector = message.createMessageComponentCollector({ filter, time: 60000 });
 
       collector.on('collect', async i => {
+        if (i.user.id !== userId) {
+          return i.reply({ content: 'You are not allowed to use these buttons.', ephemeral: true });
+        }
         if (i.customId === `main-${uniqueId}`) {
           await i.update({ embeds: [mainEmbed], components: [buttons] });
         } else if (i.customId === `side-${uniqueId}`) {

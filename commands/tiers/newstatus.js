@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionsBitField } = require('discord.js');
 const mysql = require('mysql2/promise');
 
 module.exports = {
@@ -93,9 +93,14 @@ module.exports = {
       const roleName = `Tier ${stage} ${categoryNames[category]}`;
       const roleID = roleMappings[roleName];
 
+      console.log(`User: ${userName} | Category: ${category} | Tier: ${stage} | Role Name: ${roleName} | Role ID: ${roleID}`);
+
       // Check if the user has the role
       if (roleID && !guildMember.roles.cache.has(roleID)) {
+        console.log(`Assigning role ID ${roleID} to user ${userName}`);
         await guildMember.roles.add(roleID);
+      } else {
+        console.log(`User ${userName} already has role ID ${roleID}`);
       }
 
       const fetchCategoryStatus = async (tableName) => {
@@ -155,7 +160,6 @@ module.exports = {
         )
         .setTimestamp();
 
-      // Create buttons for navigation
       const buttons = new ActionRowBuilder()
         .addComponents(
           new ButtonBuilder()
@@ -180,10 +184,8 @@ module.exports = {
             .setStyle(ButtonStyle.Success)
         );
 
-      // Send the initial embed with buttons
       const message = await interaction.reply({ embeds: [mainEmbed], components: [buttons], fetchReply: true });
 
-      // Create a collector to handle button interactions
       const filter = i => i.customId.endsWith(uniqueId) && i.user.id === userId;
       const collector = message.createMessageComponentCollector({ filter, time: 60000 });
 
@@ -206,10 +208,8 @@ module.exports = {
 
       collector.on('end', async () => {
         try {
-          // Disable buttons after the collector ends
           buttons.components.forEach(button => button.setDisabled(true));
           await message.edit({ components: [buttons] });
-          // Delete the initial interaction message if it's still there
           if (message.deletable) {
             await message.delete();
           }

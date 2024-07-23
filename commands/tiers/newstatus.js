@@ -11,12 +11,31 @@ module.exports = {
     const userName = interaction.user.tag;
     const uniqueId = Date.now().toString(); // Unique identifier for this interaction
     const guildMember = interaction.guild.members.cache.get(userId);
-    const roleID = '1263921728716013710';
 
-    // Check if the user has the role
-    if (!guildMember.roles.cache.has(roleID)) {
-      await guildMember.roles.add(roleID);
-    }
+    const roleMappings = {
+      'Tier I ARF': '1263922692965535827',
+      'Tier I ARC': '1263922720299552862',
+      'Tier I RC': '1263922801459462208',
+      'Tier II Trooper': '1263922849567998014',
+      'Tier II ARF': '1263922889007300639',
+      'Tier II ARC': '1263922920334561331',
+      'Tier II RC': '1263922950130765886',
+      'Tier III Trooper': '1263922981239783577',
+      'Tier III ARF': '1263923084797153310',
+      'Tier III ARC': '1263923156964478989',
+      'Tier III RC': '1263923186790174882',
+      'Tier IV Trooper': '1263923217295212697',
+      'Tier IV ARF': '1263923256147316766',
+      'Tier IV ARC': '1263923276262932570',
+      'Tier IV RC': '1263923299373813902',
+    };
+
+    const categoryNames = {
+      clone_trooper: 'Trooper',
+      arf: 'ARF',
+      arc: 'ARC',
+      republic_commando: 'RC'
+    };
 
     try {
       const connection = await mysql.createConnection({
@@ -70,6 +89,14 @@ module.exports = {
       const userStatus = userRows[0];
       const category = userStatus.category;
       const stage = userStatus.tier;
+
+      const roleName = `Tier ${stage} ${categoryNames[category]}`;
+      const roleID = roleMappings[roleName];
+
+      // Check if the user has the role
+      if (roleID && !guildMember.roles.cache.has(roleID)) {
+        await guildMember.roles.add(roleID);
+      }
 
       const fetchCategoryStatus = async (tableName) => {
         const [rows] = await connection.execute(`SELECT * FROM ${category}_${tableName} WHERE user_id = ?`, [userId]);

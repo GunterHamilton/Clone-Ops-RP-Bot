@@ -38,6 +38,25 @@ module.exports = {
       republic_commando: 'RC'
     };
 
+    const promotionQuota = {
+      'Tier 1 Trooper': 250,
+      'Tier 1 ARF': 400,
+      'Tier 1 ARC': 500,
+      'Tier 1 RC': 550,
+      'Tier 2 Trooper': 600,
+      'Tier 2 ARF': 700,
+      'Tier 2 ARC': 800,
+      'Tier 2 RC': 900,
+      'Tier 3 Trooper': 1000,
+      'Tier 3 ARF': 1100,
+      'Tier 3 ARC': 1200,
+      'Tier 3 RC': 1400,
+      'Tier 4 Trooper': 1500,
+      'Tier 4 ARF': 1600,
+      'Tier 4 ARC': 1700,
+      'Tier 4 RC': 2000
+    };
+
     try {
       const connection = await mysql.createConnection({
         host: process.env.DB_HOST,
@@ -122,6 +141,8 @@ module.exports = {
       const medalsStatus = await fetchCategoryStatus('medals');
       const eventStatus = await fetchCategoryStatus('victories');
 
+      const totalValue = mainStatus.totalValue + sideStatus.totalValue + medalsStatus.totalValue + eventStatus.totalValue;
+
       const createEmbed = (title, totalValue, completed) => {
         let completedValue = 'None';
         if (Array.isArray(completed)) {
@@ -144,7 +165,6 @@ module.exports = {
       const medalsEmbed = createEmbed('Medals Completion Status', medalsStatus.totalValue, medalsStatus.completed);
       const eventsEmbed = createEmbed('Event Victories Completion Status', eventStatus.totalValue, eventStatus.completed);
 
-      const totalValue = mainStatus.totalValue + sideStatus.totalValue + medalsStatus.totalValue + eventStatus.totalValue;
       const totalEmbed = new EmbedBuilder()
         .setTitle(`${userName}'s Total Completion Status (${category.toUpperCase()} Tier ${stage})`)
         .setColor(0xFFA500) // Orange color
@@ -160,6 +180,97 @@ module.exports = {
           { name: 'Overall Total Value', value: `${totalValue}`, inline: true }
         )
         .setTimestamp();
+
+      // Check if the user has completed the quota for the current stage
+      const currentRoleName = `Tier ${stage} ${categoryNames[category]}`;
+      const requiredPoints = promotionQuota[currentRoleName];
+      let promotionMessage = '';
+
+      if (totalValue >= requiredPoints) {
+        let newCategory, newTier;
+        switch (currentRoleName) {
+          case 'Tier 1 Trooper':
+            newCategory = 'arf';
+            newTier = 1;
+            break;
+          case 'Tier 1 ARF':
+            newCategory = 'arc';
+            newTier = 1;
+            break;
+          case 'Tier 1 ARC':
+            newCategory = 'republic_commando';
+            newTier = 1;
+            break;
+          case 'Tier 1 RC':
+            newCategory = 'clone_trooper';
+            newTier = 2;
+            break;
+          case 'Tier 2 Trooper':
+            newCategory = 'arf';
+            newTier = 2;
+            break;
+          case 'Tier 2 ARF':
+            newCategory = 'arc';
+            newTier = 2;
+            break;
+          case 'Tier 2 ARC':
+            newCategory = 'republic_commando';
+            newTier = 2;
+            break;
+          case 'Tier 2 RC':
+            newCategory = 'clone_trooper';
+            newTier = 3;
+            break;
+          case 'Tier 3 Trooper':
+            newCategory = 'arf';
+            newTier = 3;
+            break;
+          case 'Tier 3 ARF':
+            newCategory = 'arc';
+            newTier = 3;
+            break;
+          case 'Tier 3 ARC':
+            newCategory = 'republic_commando';
+            newTier = 3;
+            break;
+          case 'Tier 3 RC':
+            newCategory = 'clone_trooper';
+            newTier = 4;
+            break;
+          case 'Tier 4 Trooper':
+            newCategory = 'arf';
+            newTier = 4;
+            break;
+          case 'Tier 4 ARF':
+            newCategory = 'arc';
+            newTier = 4;
+            break;
+          case 'Tier 4 ARC':
+            newCategory = 'republic_commando';
+            newTier = 4;
+            break;
+          default:
+            newCategory = category;
+            newTier = stage;
+        }
+
+        await connection.execute('UPDATE user_status SET category = ?, tier = ? WHERE user_id = ?', [newCategory, newTier, userId]);
+
+        for (const table of tables) {
+          await connection.execute(`DELETE FROM ${category}_${table} WHERE user_id = ?`, [userId]);
+          await connection.execute(`
+            INSERT INTO ${newCategory}_${table} (user_id, user_name, total_value, ${table === 'main_tiers' || table === 'side_tiers' ? 'tiers_completed' : table === 'medals' ? 'medals_completed' : 'victories_completed'}, stage)
+            VALUES (?, ?, 0, ?, ?)
+            ON DUPLICATE KEY UPDATE user_name = VALUES(user_name), total_value = 0, ${table === 'main_tiers' || table === 'side_tiers' ? 'tiers_completed' : table === 'medals' ? 'medals_completed' : 'victories_completed'} = VALUES(${table === 'main_tiers' || table === 'side_tiers' ? 'tiers_completed' : table === 'medals' ? 'medals_completed' : 'victories_completed'}), stage = ?
+          `, [userId, userName, table === 'main_tiers' || table === 'side_tiers' ? '[]' : '{}', newTier, newTier]);
+        }
+
+        promotionMessage = `Congrats ${categoryNames[category]} quota complete!
+
+Fill out the Tier Checklist for ${currentRoleName} by clicking [here](https://docs.google.com/document/d/1ql3McaNUNxxwiqy3-tNfO7_LLaGLV0ST8Zx0pCAWqnY/edit). Fill out promotion log once you have been whitelisted in game.`;
+      }
+
+      await connection.end();
 
       const buttons = new ActionRowBuilder()
         .addComponents(
@@ -185,7 +296,11 @@ module.exports = {
             .setStyle(ButtonStyle.Success)
         );
 
-      const message = await interaction.reply({ embeds: [mainEmbed], components: [buttons], fetchReply: true });
+      const embeds = [mainEmbed];
+      if (promotionMessage) {
+        embeds.push(new EmbedBuilder().setTitle('Promotion!').setDescription(promotionMessage).setColor(0x00FF00).setTimestamp());
+      }
+      const message = await interaction.reply({ embeds, components: [buttons], fetchReply: true });
 
       const filter = i => i.customId.endsWith(uniqueId) && i.user.id === userId;
       const collector = message.createMessageComponentCollector({ filter, time: 60000 });
@@ -222,8 +337,6 @@ module.exports = {
           }
         }
       });
-
-      await connection.end();
 
     } catch (error) {
       console.error('Database error:', error);

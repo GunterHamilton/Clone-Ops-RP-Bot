@@ -33,7 +33,7 @@ module.exports = {
         database: process.env.DB_NAME
       });
 
-      // Ensure the event_victories table exists
+      // Ensure the event_victories table exists in the new format
       await connection.execute(`
         CREATE TABLE IF NOT EXISTS event_victories (
           user_id VARCHAR(255) NOT NULL PRIMARY KEY,

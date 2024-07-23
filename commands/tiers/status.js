@@ -42,7 +42,7 @@ module.exports = {
       });
 
       // Ensure the necessary tables exist for the selected category
-      const tables = ['main_tiers', 'side_tiers', 'medals', 'event_victories'];
+      const tables = ['main_tiers', 'side_tiers', 'medals', 'victories'];
       for (const table of tables) {
         await connection.execute(`
           CREATE TABLE IF NOT EXISTS ${category}_${table} (
@@ -75,7 +75,7 @@ module.exports = {
       const mainStatus = await fetchCategoryStatus('main_tiers');
       const sideStatus = await fetchCategoryStatus('side_tiers');
       const medalsStatus = await fetchCategoryStatus('medals');
-      const eventStatus = await fetchCategoryStatus('event_victories');
+      const eventStatus = await fetchCategoryStatus('victories');
 
       const createEmbed = (title, totalValue, completed, stage) => {
         return new EmbedBuilder()
@@ -207,4 +207,3 @@ module.exports = {
     }
   },
 };
-

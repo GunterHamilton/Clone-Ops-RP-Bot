@@ -90,9 +90,9 @@ module.exports = {
       const logEmbed = new EmbedBuilder()
         .setTitle('Ticket Closed Log')
         .addFields(
-          { name: 'User', value: userName, inline: true },
-          { name: 'Channel', value: channelName, inline: true },
-          { name: 'Category', value: categoryName, inline: true },
+          { name: 'User', value: userName || 'Unknown', inline: true },
+          { name: 'Channel', value: channelName || 'Unknown', inline: true },
+          { name: 'Category', value: categoryName || 'Unknown', inline: true },
           { name: 'Ticket Number', value: ticketNumber.toString(), inline: true }
         )
         .setColor(0x1E90FF) // Dodger Blue

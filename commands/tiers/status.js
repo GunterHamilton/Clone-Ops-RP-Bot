@@ -89,7 +89,7 @@ module.exports = {
           .setColor(0xFFA500) // Orange color
           .addFields(
             { name: 'Total Value', value: `${totalValue}`, inline: false },
-            { name: 'Completed', value: Array.isArray(completed) ? completed.map(tier => `Tier ${tier}`).join('\n') : Object.entries(completed).map(([cat, tiers]) => `${cat}: ${tiers.map(tier => `Tier ${tier}`).join(', ')}`).join('\n') || 'None', inline: false }
+            { name: 'Completed', value: Array.isArray(completed) ? completed.length > 0 ? completed.map(tier => `Tier ${tier}`).join('\n') : 'None' : Object.entries(completed).map(([cat, tiers]) => `${cat}: ${tiers.map(tier => `Tier ${tier}`).join(', ')}`).join('\n') || 'None', inline: false }
           )
           .setTimestamp();
       };

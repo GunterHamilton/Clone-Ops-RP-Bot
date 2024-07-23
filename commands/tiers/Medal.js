@@ -33,17 +33,20 @@ module.exports = {
         database: process.env.DB_NAME
       });
 
-      // Ensure the medals table exists in the new format
-      await connection.execute(`
-        CREATE TABLE IF NOT EXISTS medals (
-          user_id VARCHAR(255) NOT NULL PRIMARY KEY,
-          user_name VARCHAR(255) NOT NULL,
-          total_value INT NOT NULL DEFAULT 0,
-          medals_completed JSON NOT NULL DEFAULT '{}',
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        )
-      `);
+      // Ensure the necessary tables exist for each category
+      const tables = ['clone_trooper_medals', 'arf_medals', 'arc_medals', 'republic_commando_medals'];
+      for (const table of tables) {
+        await connection.execute(`
+          CREATE TABLE IF NOT EXISTS ${table} (
+            user_id VARCHAR(255) NOT NULL PRIMARY KEY,
+            user_name VARCHAR(255) NOT NULL,
+            total_value INT NOT NULL DEFAULT 0,
+            medals_completed JSON NOT NULL DEFAULT '{}',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+          )
+        `);
+      }
 
       await connection.end();
 
@@ -108,8 +111,10 @@ module.exports = {
               database: process.env.DB_NAME
             });
 
+            const tableName = `${category.toLowerCase().replace(' ', '_')}_medals`;
+
             // Fetch current medals status
-            const [rows] = await connection.execute('SELECT * FROM medals WHERE user_id = ?', [userId]);
+            const [rows] = await connection.execute(`SELECT * FROM ${tableName} WHERE user_id = ?`, [userId]);
             let totalValue = 0;
             let medalsCompleted = {};
 
@@ -127,7 +132,7 @@ module.exports = {
 
             // Insert or update medals in the database
             await connection.execute(`
-              INSERT INTO medals (user_id, user_name, total_value, medals_completed)
+              INSERT INTO ${tableName} (user_id, user_name, total_value, medals_completed)
               VALUES (?, ?, ?, ?)
               ON DUPLICATE KEY UPDATE
               user_name = VALUES(user_name),
@@ -138,7 +143,7 @@ module.exports = {
 
             // Check if the user has completed the current stage and reset progress if necessary
             if (totalValue >= STAGE_COMPLETION_POINTS[category]) {
-              await connection.execute(`DELETE FROM medals WHERE user_id = ?`, [userId]);
+              await connection.execute(`DELETE FROM ${tableName} WHERE user_id = ?`, [userId]);
               await j.reply({
                 content: `You have completed the quota to move onto the next stage! Your progress has now been reset!`,
                 ephemeral: true

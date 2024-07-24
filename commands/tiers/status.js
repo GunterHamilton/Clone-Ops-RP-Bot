@@ -156,6 +156,9 @@ module.exports = {
       const medalsEmbed = createEmbed('Medals Completion Status', medalsStatus.totalValue);
       const eventsEmbed = createEmbed('Event Victories Completion Status', eventStatus.totalValue);
 
+      const currentRoleName = `Tier ${stage} ${categoryNames[category]}`;
+      const requiredPoints = promotionQuota[currentRoleName];
+
       const totalEmbed = new EmbedBuilder()
         .setTitle(`${userName}'s Total Completion Status (${category.toUpperCase()} Tier ${stage})`)
         .setColor(0xFFA500) // Orange color
@@ -164,13 +167,11 @@ module.exports = {
           { name: 'Side Tier Total Value', value: `${sideStatus.totalValue}`, inline: true },
           { name: 'Medals Total Value', value: `${medalsStatus.totalValue}`, inline: true },
           { name: 'Event Victories Total Value', value: `${eventStatus.totalValue}`, inline: true },
-          { name: 'Overall Total Value', value: `${totalValue}`, inline: true }
+          { name: 'Overall Total Value', value: `${totalValue} / ${requiredPoints}`, inline: true }
         )
         .setTimestamp();
 
       // Check if the user has completed the quota for the current stage
-      const currentRoleName = `Tier ${stage} ${categoryNames[category]}`;
-      const requiredPoints = promotionQuota[currentRoleName];
       let promotionMessage = '';
 
       if (totalValue >= requiredPoints) {

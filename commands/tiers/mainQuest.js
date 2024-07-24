@@ -2,10 +2,10 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const mysql = require('mysql2/promise');
 
 const VALUES = {
-  clone_trooper: [10, 20, 30, 40],
-  arf: [15, 25, 35, 45],
-  arc: [20, 30, 40, 50],
-  republic_commando: [25, 35, 45, 55]
+  clone_trooper: [10, 10, 20, 25],
+  arf: [10, 10, 20, 25],
+  arc: [10, 10, 20, 25],
+  republic_commando: [10, 10, 20, 25]
 };
 
 module.exports = {

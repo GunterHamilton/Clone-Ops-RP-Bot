@@ -35,14 +35,19 @@ module.exports = {
         database: process.env.DB_NAME
       });
 
-      // Get the user's current category from the user_status table
-      const [userStatus] = await connection.execute('SELECT category FROM user_status WHERE user_id = ?', [userId]);
+      // Get the user's current category and tier from the user_status table
+      const [userStatus] = await connection.execute('SELECT category, tier FROM user_status WHERE user_id = ?', [userId]);
+
+      let category = 'clone_trooper';
+      let tier = 1;
 
       if (userStatus.length === 0) {
-        return interaction.reply({ content: 'You do not have a set category. Please contact an administrator.', ephemeral: true });
+        // Insert default status if not found
+        await connection.execute('INSERT INTO user_status (user_id, user_name, category, tier) VALUES (?, ?, ?, ?)', [userId, userName, category, tier]);
+      } else {
+        category = userStatus[0].category;
+        tier = userStatus[0].tier;
       }
-
-      const category = userStatus[0].category;
 
       // Ensure the necessary table exists for the user's category
       await connection.execute(`

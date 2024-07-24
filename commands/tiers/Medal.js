@@ -47,7 +47,7 @@ module.exports = {
         )
       `);
 
-      const [userStatus] = await connection.execute('SELECT category FROM user_status WHERE user_id = ?', [userId]);
+      const [userStatus] = await connection.execute('SELECT category, tier FROM user_status WHERE user_id = ?', [userId]);
 
       let category = 'clone_trooper';
 
